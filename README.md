@@ -20,37 +20,44 @@ bar.txt:
 bar
 ```
 
-Running `txtpp foo.txt.txtpp` will produce `foo.txt`:
+Running `txtpp foo.txt` will produce `foo.txt`:
 ```
 hello
 bar
 world
 ```
 
-You can also `#include` a `.txtpp` file, and the tool will automatically preprocess that file and include the result.
+You can also chain the preprocessing: if the included `bar.txt` has a `bar.txt.txtpp` file, it will be preprocessed first to produce `bar.txt`, and the result will be used as the output.
 
 ## Execute a command
 
-foo.txtpp:
+foo.txt.txtpp:
 ```
 hello
 TXTPP#run cat foo.txtpp 
 world
 ```
 
-Running `txtpp foo.txtpp` will produce `foo.txt`:
+Running `txtpp foo.txt` will produce `foo.txt`:
 ```
 hello
 hello
-#run cat foo.txtpp 
+TXTPP#run cat foo.txtpp 
 world
 world
 ```
 
-By default this uses `powershell -c` on windows and `sh -c` otherwise. You can change that from command line
+By default this uses `powershell -c` on windows (or `CMD /C` if PowerShell is not available) and `sh -c` otherwise. You can change that from command line
 
-# Features
-`txtpp` really only provides 3 simple directives: `include`, `run` and the empty directive.
+# Feature Summary
+`txtpp` uses directives found in the `.txtpp` files to do preprocessing. 
+The available directives are:
+  - [`TXTPP#`](#empty-directive) - empty directive
+  - [`TXTPP#include`](#include-file) - include another file
+  - [`TXTPP#run`](#run-command) - execute a command and include the output
+  - [`TXTPP#tag`](#prefix) - change the prefix for directives
+- Meta directives, which tell the other directives what to do. (These have `##` instead of `#`)
+  
 
 ## Directive Detection
 A directive will be detected if a line looks like this:
