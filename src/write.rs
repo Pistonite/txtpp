@@ -1,24 +1,29 @@
 use std::io::{self, Write};
 use std::{fs::File, io::BufWriter};
 
+use crate::path::AbsPath;
+
 pub struct WriteWrapper {
     str: Option<String>,
     file: Option<BufWriter<File>>,
 }
 
 impl WriteWrapper {
-    pub fn new_str() -> Self {
-        WriteWrapper {
-            str: Some(String::new()),
-            file: None,
+    pub fn new(is_str: bool, file: &AbsPath) -> io::Result<Self> {
+        if is_str {
+            Ok(Self {
+                str: Some(String::new()),
+                file: None,
+            })
+        } else {
+            Ok(Self {
+                str: None,
+                file: Some(BufWriter::new(File::create(file)?)),
+            })
         }
+        
     }
-    pub fn new_file(file: File) -> Self {
-        WriteWrapper {
-            str: None,
-            file: Some(BufWriter::new(file)),
-        }
-    }
+
     pub fn write(&mut self, output: &str) -> io::Result<()> {
         match &mut self.str {
             Some(s) => {

@@ -6,5 +6,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex = "^1.7.3"
 which = "^4.4.0"
+error-stack = "^0.3.1"
+termcolor = "^1.2.0"
+threadpool = "^1.8.1"
+clap = { version = "^4.2.4", features = ["cargo", "derive"] }
+
+[[bin]]
+name = "txtpp"
+path = "src/main.rs"
+
+[lib]
+name = "txtpp"
+path = "src/lib.rs"
