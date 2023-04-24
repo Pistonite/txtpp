@@ -103,7 +103,7 @@ pub fn do_preprocess(
     if is_verifying {
         // check if the thing exist and is the same
         context.verify().map_err(|e|{
-            e.change_context(PreprocessError::Verify).attach_printable("output is not up to date.")
+            e.change_context(PreprocessError::Verify(input_file.clone())).attach_printable("output is not up to date.")
             
         })?;
     }
@@ -146,7 +146,7 @@ fn iterate_directive(current_directive: Option<Directive>, line: String) -> Iter
 pub enum PreprocessError {
     File(AbsPath),
     Directive(AbsPath),
-    Verify,
+    Verify(AbsPath),
 }
 
 impl fmt::Display for PreprocessError {
@@ -154,7 +154,7 @@ impl fmt::Display for PreprocessError {
         match self {
             PreprocessError::File(p) => write!(f, "File error processing {p}"),
             PreprocessError::Directive(p) => write!(f, "Directive error processing {p}"),
-            PreprocessError::Verify => write!(f, "Output is not up to date"),
+            PreprocessError::Verify(_) => write!(f, "Output is not up to date"),
         }
     }
 }

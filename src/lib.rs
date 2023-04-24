@@ -10,6 +10,7 @@ mod fs;
 
 
 mod progress;
+pub use progress::Verbosity;
 
 // pub fn build() -> Result<(), PreprocessError> {
     

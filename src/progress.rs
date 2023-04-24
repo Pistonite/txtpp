@@ -3,24 +3,36 @@ use std::error::Error;
 use std::io::Write;
 use std::time::{Duration, Instant};
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum Verbosity {
+    Quiet,
+    Normal,
+    Verbose,
+}
+
 /// Utility for displaying progress
 pub struct Progress {
     out: StandardStream,
     done_count: usize,
     total_count: usize,
     last_update: Instant,
+    verbosity: Verbosity,
 }
 impl Progress {
-    pub fn new() -> Self {
+    pub fn new(verbosity: Verbosity) -> Self {
         Self {
             out: StandardStream::stderr(ColorChoice::Always),
             done_count: 0,
             total_count: 0,
             last_update: Instant::now(),
+            verbosity,
         }
     }
     /// Update the progress display
     pub fn update_progress(&mut self, done: usize, total: usize) -> Result<(), Box<dyn Error>> {
+        if self.verbosity == Verbosity::Quiet {
+            return Ok(());
+        }
         self.done_count = done;
         self.total_count = total;
         if self.last_update.elapsed() > Duration::from_millis(100) {
@@ -49,6 +61,12 @@ impl Progress {
     // }
 
     pub fn print_status(&mut self, status: &str, message: &str, color: Color, verbose: bool) -> Result<(), Box<dyn Error>> {
+        if self.verbosity == Verbosity::Quiet {
+            return Ok(());
+        }
+        if verbose && self.verbosity != Verbosity::Verbose {
+            return Ok(());
+        }
         self.out.reset()?;
         self.out.set_color(ColorSpec::new().set_bold(true).set_fg(Some(color)))?;
         write!(self.out, "{:>12}", status)?;
