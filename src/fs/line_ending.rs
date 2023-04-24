@@ -7,9 +7,9 @@ use std::path::Path;
 pub const CRLF: &'static str = "\r\n";
 pub const LF: &'static str = "\n";
 #[cfg(windows)]
-pub const OS_LINE_ENDING: &'static str = "\r\n";
+pub const OS_LINE_ENDING: &'static str = CRLF;
 #[cfg(not(windows))]
-pub const OS_LINE_ENDING: &'static str = "\n";
+pub const OS_LINE_ENDING: &'static str = LF;
 
 pub trait GetLineEnding {
     fn get_line_ending(&self) -> &'static str;

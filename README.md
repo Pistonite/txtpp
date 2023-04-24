@@ -69,7 +69,7 @@ The directives are all prefixed with `TXTPP#`:
 
 # Directives
 ## Syntax
-A directive is a multi-line structure in the source file, that looks like this:
+A directive is a single- or multi-line structure in the source file, that looks like this:
 ```
 {WHITESPACES}{PREFIX1}TXTPP#{DIRECTIVE} {ARG1}
 {WHITESPACES}{PREFIX2}{ARG2}
@@ -86,7 +86,7 @@ Explanation:
     - `{DIRECTIVE}`: can be one of the directives
     - ` `: (space) At least one space between the directive name and its input. This will be trimmed.
     - `{ARG1}`: argument as one string, until the end of the line. Both leading and trailing whitespaces (including the new line) will be trimmed.
-1. Subsequent lines:
+1. Subsequent lines: Some directives are allowed to have more than one lines (see [specification](#specification) for what they are)
     - `{WHITESPACES}`: this must match exactly with `{WHITESPACES}` in the first line
     - `{PREFIX2}`: this must be one of:
       - the same number of space characters (i.e `' '`) as the `{PREFIX1}` in the first line
@@ -98,11 +98,11 @@ Explanation:
 
 For example, you can write the directive like
 ```
-        // TXTPP#include foo.html
+        // TXTPP#run echo "hello world"
 ```
 which will be treated like a comment in most languages to help with syntax highlighting.
 
-Another example as a block comment
+The same example as a block comment
 ```
         /* TXTPP#run echo "
            hello world
@@ -110,7 +110,7 @@ Another example as a block comment
 
            TXTPP# */
 ```
-This will execute the command `echo "hello world"`. Note that we used an empty line to end the first directive, and then used the empty directive to remove the end of the block comment.
+This will execute the command `echo "hello world"`. Note that because `run` supports multi-line, we used an empty line to end the first directive, and then used the empty directive to remove the end of the block comment.
 
 ## Output
 If the directive has output like `include` and `run`, it will be processed as follows:
@@ -126,7 +126,7 @@ This section contains detailed specification of each directive.
 #### USAGE
 This directive is used include the content of another file into the current file.
 #### ARGUMENTS
-The arguments are joined with nothing in between to form the `FILE_PATH`
+Single-line only. The argument is `FILE_PATH`
 #### BEHAVIOR
 - If `FILE_PATH` is an absolute path, it will be used as is. Otherwise, it should be relative to the (directory of) the current file.
 - If `FILE_PATH` does not end in `.txtpp`, and `FILE_PATH.txtpp` exists, `FILE_PATH.txtpp` will be preprocessed first to produce `FILE_PATH`, and the result will be used as the output. Note that you would still include `FILE_PATH`, not `FILE_PATH.txtpp`.
@@ -140,7 +140,7 @@ TXTPP#include foo.txt
 #### USAGE
 This directive is used to run a command and include the output of the command into the current file.
 #### ARGUMENTS
-The arguments are joined with a single space in between to form the `COMMAND`
+Can have more than one line. The arguments are joined with a single space in between to form the `COMMAND`
 #### BEHAVIOR
 - The `COMMAND` will be executed as a sub-process.
 - Default shell selection:
@@ -162,7 +162,7 @@ TXTPP#run echo "hello world"
 #### USAGE
 Empty directive has the empty string as the name and does nothing. It can be used to remove lines from the input.
 #### ARGUMENTS
-All arguments to the empty directive will be ignored.
+Can have more than one line. All arguments to the empty directive will be ignored.
 #### BEHAVIOR
 Nothing
 #### EXAMPLE
@@ -221,7 +221,7 @@ function get_cities() {
 #### USAGE
 This directive is used to create a tag to store the next directive's output.
 #### ARGUMENTS
-The arguments are joined with nothing in between to form the `TAG`
+Single-line only. The argument is `TAG`
 #### BEHAVIOR
 - The lifecycle of a tag is as follows:
   1. A tag is created with the `tag` directive and will listen for the next directive's output.
@@ -283,7 +283,8 @@ Options (will be preprocessed with txtpp, hehe)
 
 -r: recursive. if a directory is given, it will recursively preprocess all the files in that directory. If not given, only the files in the given directory will be processed and subdirecotires will be ignored
 
--q: quiet. if given, the tool will not print anything to stdout
+-q: quiet. if given, the tool will not print anything
+-v: verbose. the opposite of quiet. if given, the tool will print more information
 
 -j: number of concurrent tasks. if given, files will be processsed on multiple threads. Only faster if you have a lot of files to process, since a file will be processed twice if a dependency is detected
 

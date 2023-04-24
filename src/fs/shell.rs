@@ -1,4 +1,6 @@
-use crate::path::AbsPath;
+//! Utilities for running shell commands
+
+use super::path::AbsPath;
 use error_stack::{IntoReport, Report, Result};
 use std::error;
 use std::fmt::{Display, Formatter};
@@ -8,7 +10,7 @@ use which::which;
 
 pub const TXTPP_FILE: &str = "TXTPP_FILE";
 
-/// Internal error related to shell
+/// Error related to shell
 #[derive(Debug)]
 pub enum ShellError {
     ResolveError,
@@ -26,6 +28,8 @@ impl std::fmt::Display for ShellError {
 
 impl error::Error for ShellError {}
 
+/// Representation of a resolved shell command like `sh -c` or `cmd /C`
+/// that takes a command as argument.
 pub struct Shell {
     /// The shell executable
     exe: String,
@@ -67,25 +71,25 @@ impl Shell {
     pub fn run<P>(
         &self,
         command: &str,
-        working_directory: &P,
+        work_dir: &P,
         file: &str,
     ) -> Result<String, ShellError>
     where
         P: AsRef<Path>,
     {
         let result = Command::new(&self.exe)
-            .current_dir(working_directory)
+            .current_dir(work_dir)
             .args(&self.args)
             .arg(command)
             .env(TXTPP_FILE, file)
             .output()
             .into_report()
             .map_err(|e| {
-                e.attach_printable(format!(
+                e.change_context(ShellError::ExecuteError).attach_printable(format!(
                     "Failed to execute `{}` with shell `{}`",
                     command, self
                 ))
-                .change_context(ShellError::ExecuteError)
+                
             })?;
         if result.status.success() {
             Ok(String::from_utf8_lossy(&result.stdout).to_string())
@@ -110,20 +114,20 @@ fn resolve_shell(exe: &str) -> Result<AbsPath, ShellError> {
     let p = which(exe).unwrap_or_else(|_| Path::new(exe).to_path_buf());
 
     let p = p.canonicalize().into_report().map_err(|e| {
-        e.attach_printable(format!(
-            "Could not resolve shell executable: {}",
+        e.change_context(ShellError::ResolveError).attach_printable(format!(
+            "could not resolve shell executable: {}",
             p.display()
         ))
-        .change_context(ShellError::ResolveError)
+        
     })?;
 
     let path = p.display().to_string();
 
-    AbsPath::try_from(p).into_report().map_err(|e| {
-        e.attach_printable(format!(
-            "Could not convert shell executable to absolute path: {}",
+    AbsPath::try_from(p).map_err(|e| {
+        e.change_context(ShellError::ResolveError).attach_printable(format!(
+            "could not convert shell executable to absolute path: {}",
             path
         ))
-        .change_context(ShellError::ResolveError)
+        
     })
 }

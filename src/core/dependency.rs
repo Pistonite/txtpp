@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::path::AbsPath;
+use crate::fs::AbsPath;
 
 /// Dependency Manager
 /// 
@@ -82,7 +82,7 @@ mod ut {
     #[test]
     fn test_empty() {
         let mut dm = DepManager::new();
-        let finished = AbsPath::try_from(PathBuf::from("/a")).unwrap();
+        let finished = AbsPath::new(PathBuf::from("/a"));
         let free = dm.notify_finish(&finished);
         assert_eq!(free, HashSet::new());
     }
@@ -90,7 +90,7 @@ mod ut {
     #[test]
     fn test_insert_empty() {
         let mut dm = DepManager::new();
-        let finished = AbsPath::try_from(PathBuf::from("/a")).unwrap();
+        let finished = AbsPath::new(PathBuf::from("/a"));
         dm.add_dependency(&finished, &[]);
         let free = dm.notify_finish(&finished);
         assert_eq!(free, HashSet::new());
@@ -99,8 +99,8 @@ mod ut {
     #[test]
     fn test_one() {
         let mut dm = DepManager::new();
-        let a = AbsPath::try_from(PathBuf::from("/a")).unwrap();
-        let b = AbsPath::try_from(PathBuf::from("/b")).unwrap();
+        let a = AbsPath::new(PathBuf::from("/a"));
+        let b = AbsPath::new(PathBuf::from("/b"));
         dm.add_dependency(&a, &[b.clone()]);
         let free = dm.notify_finish(&b);
         assert_eq!(free, [a].into_iter().collect());
@@ -109,9 +109,9 @@ mod ut {
     #[test]
     fn test_one_no_depender() {
         let mut dm = DepManager::new();
-        let a = AbsPath::try_from(PathBuf::from("/a")).unwrap();
-        let b = AbsPath::try_from(PathBuf::from("/b")).unwrap();
-        let c = AbsPath::try_from(PathBuf::from("/c")).unwrap();
+        let a = AbsPath::new(PathBuf::from("/a"));
+        let b = AbsPath::new(PathBuf::from("/b"));
+        let c = AbsPath::new(PathBuf::from("/c"));
         dm.add_dependency(&a, &[b.clone()]);
         let free = dm.notify_finish(&c);
         assert_eq!(free, HashSet::new());
@@ -122,9 +122,9 @@ mod ut {
     #[test]
     fn test_one_depends_on_two() {
         let mut dm = DepManager::new();
-        let a = AbsPath::try_from(PathBuf::from("/a")).unwrap();
-        let b = AbsPath::try_from(PathBuf::from("/b")).unwrap();
-        let c = AbsPath::try_from(PathBuf::from("/c")).unwrap();
+        let a = AbsPath::new(PathBuf::from("/a"));
+        let b = AbsPath::new(PathBuf::from("/b"));
+        let c = AbsPath::new(PathBuf::from("/c"));
         dm.add_dependency(&a, &[b.clone(), c.clone()]);
         let free = dm.notify_finish(&b);
         assert_eq!(free, HashSet::new());
@@ -135,10 +135,10 @@ mod ut {
     #[test]
     fn test_diamond() {
         let mut dm = DepManager::new();
-        let a = AbsPath::try_from(PathBuf::from("/a")).unwrap();
-        let b = AbsPath::try_from(PathBuf::from("/b")).unwrap();
-        let c = AbsPath::try_from(PathBuf::from("/c")).unwrap();
-        let d = AbsPath::try_from(PathBuf::from("/d")).unwrap();
+        let a = AbsPath::new(PathBuf::from("/a"));
+        let b = AbsPath::new(PathBuf::from("/b"));
+        let c = AbsPath::new(PathBuf::from("/c"));
+        let d = AbsPath::new(PathBuf::from("/d"));
         dm.add_dependency(&a, &[b.clone(), c.clone()]);
         dm.add_dependency(&b, &[d.clone()]);
         dm.add_dependency(&c, &[d.clone()]);
@@ -153,9 +153,9 @@ mod ut {
     #[test]
     fn test_circle() {
         let mut dm = DepManager::new();
-        let a = AbsPath::try_from(PathBuf::from("/a")).unwrap();
-        let b = AbsPath::try_from(PathBuf::from("/b")).unwrap();
-        let c = AbsPath::try_from(PathBuf::from("/c")).unwrap();
+        let a = AbsPath::new(PathBuf::from("/a"));
+        let b = AbsPath::new(PathBuf::from("/b"));
+        let c = AbsPath::new(PathBuf::from("/c"));
         dm.add_dependency(&a, &[b.clone(), c.clone()]);
         dm.add_dependency(&b, &[a.clone()]);
         let free = dm.notify_finish(&c);

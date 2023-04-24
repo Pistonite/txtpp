@@ -1,5 +1,6 @@
-use crate::constants::TXTPP_HASH;
 use super::*;
+
+pub const TXTPP_HASH: &str = "TXTPP#";
 
 impl Directive {
 
