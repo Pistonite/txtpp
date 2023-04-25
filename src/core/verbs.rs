@@ -4,3 +4,5 @@ pub const DONE: &str = "Finished";
 pub const SCANNED: &str = "Scanned";
 pub const SCANNING: &str = "Scanning";
 pub const FAILED: &str = "Failed";
+pub const CLEANING: &str = "Cleaning";
+pub const VERIFYING: &str = "Verifying";

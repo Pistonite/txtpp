@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use crate::core::verbs;
 
 /// Config for running txtpp
 /// 
@@ -72,4 +73,14 @@ pub enum Mode {
     Clean,
     /// Verify output files are the same as fresh output
     Verify
+}
+
+impl Mode {
+    pub fn processing_verb(&self) -> &'static str {
+        match self {
+            Self::Build => verbs::PROCESSING,
+            Self::Clean => verbs::CLEANING,
+            Self::Verify => verbs::VERIFYING,
+        }
+    }
 }

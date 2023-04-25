@@ -55,7 +55,11 @@ pub struct Txtpp {
     /// The Receiver for the main thread to receive results
     recv: mpsc::Receiver<TaskResult>,
     /// Files in the build system
+    /// 
+    /// This is to track we don't unnecessarily process the same file twice in the first pass
     files: HashSet<AbsPath>,
+    /// The verb for the current processing mode (e.g. "Txtpping", "Cleaning", "Verifying")
+    process_verb: &'static str
 }
 
 impl Txtpp {
@@ -80,6 +84,7 @@ impl Txtpp {
         let (send, recv) = mpsc::channel();
 
         let runtime = Self {
+            process_verb: config.mode.processing_verb(),
             config,
             shell,
             progress,
@@ -251,7 +256,7 @@ impl Txtpp {
         let _ = self.progress.add_total(1);
         let _ =
             self.progress
-                .print_status(verbs::PROCESSING, &file.to_string(), Color::Green, false);
+                .print_status(self.process_verb, &file.to_string(), Color::Green, false);
         let send = self.send.clone();
         let shell = self.shell.clone();
         let mode = self.config.mode.clone();
