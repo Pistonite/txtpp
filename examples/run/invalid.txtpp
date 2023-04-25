@@ -1,0 +1,11 @@
+This run directive is invalid because the prefix is empty:
+
+TXTPP#run echo hello
+
+The preprocessor uses the prefix to determine when to terminate a multi-line directive.
+Therefore it will never be able to terminate it.
+
+(It can technically terminate it if the directive is indented,
+but for simplicity, we just disallow empty prefixes.)
+
+building this file will produce an error

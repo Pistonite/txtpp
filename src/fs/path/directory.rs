@@ -16,5 +16,4 @@ impl Directory {
             subdirs: vec![],
         }
     }
-
 }

@@ -1,5 +1,5 @@
-use std::fmt;
 use std::error;
+use std::fmt;
 use std::path::Path;
 
 /// Error related to paths
@@ -32,7 +32,6 @@ impl fmt::Display for PathError {
             &self.path
         };
         Self::fmt_internal(path, f)
-
     }
     #[cfg(not(windows))]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -47,4 +46,3 @@ impl PathError {
         write!(f, "Error in path `{p}`")
     }
 }
-

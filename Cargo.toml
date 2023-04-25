@@ -13,6 +13,11 @@ threadpool = "^1.8.1"
 clap = { version = "^4.2.4", features = ["cargo", "derive"] }
 log = "^0.4.17"
 env_logger = "^0.10.0"
+derivative = "^2.2.0"
+
+[dev-dependencies]
+copy_dir = "^0.1.2"
+murmur3 = "^0.5.2"
 
 [[bin]]
 name = "txtpp"

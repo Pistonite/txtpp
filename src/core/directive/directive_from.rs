@@ -3,13 +3,12 @@ use super::*;
 pub const TXTPP_HASH: &str = "TXTPP#";
 
 impl Directive {
-
     /// Try detecting a directive from a line
-    /// 
+    ///
     /// # Arguments
     /// `line`: The line to detect the directive from.
     /// The line should not have new line characters (`\r\n` or `\n`) at the end.
-    /// 
+    ///
     /// # Returns
     /// The detected directive with its first argument from the line,
     /// or [`None`] if the line is not a directive.
@@ -20,16 +19,13 @@ impl Directive {
             .unwrap_or(line.len());
         let whitespaces = &line[..first_non_whitespace];
         let line = &line[first_non_whitespace..];
-    
+
         // Get prefix
         let (line, prefix) = match line.find(TXTPP_HASH) {
-            Some(i) => (
-                &line[i..],
-                &line[..i],
-            ),
+            Some(i) => (&line[i..], &line[..i]),
             None => return None,
         };
-        
+
         // Get directive name and first argument
         let directive_name = &line[TXTPP_HASH.len()..];
         let (directive_name, arg) = match directive_name.split_once(' ') {
@@ -42,16 +38,14 @@ impl Directive {
             Ok(x) => x,
             Err(_) => return None,
         };
-        
+
         Some(Directive::new(
             whitespaces,
-                        prefix,
-                        diretive_type,
-                        vec![arg.to_string()],
+            prefix,
+            diretive_type,
+            vec![arg.to_string()],
         ))
-
-     }
-    
+    }
 }
 
 #[cfg(test)]
@@ -87,7 +81,12 @@ mod ut {
     #[test]
     fn test_from_basic_empty() {
         let line = "TXTPP#";
-        let expected = Some(Directive::new("", "", DirectiveType::Empty, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Empty,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -96,7 +95,12 @@ mod ut {
     #[test]
     fn test_from_basic_empty_arg() {
         let line = "TXTPP# \t\t argag";
-        let expected = Some(Directive::new("", "", DirectiveType::Empty, vec!["argag".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Empty,
+            vec!["argag".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -121,7 +125,12 @@ mod ut {
     #[test]
     fn test_from_basic_empty_randomstuff() {
         let line = "  random TXTPP# stuff\t\t";
-        let expected = Some(Directive::new("  ", "random ", DirectiveType::Empty, vec!["stuff".to_string()]));
+        let expected = Some(Directive::new(
+            "  ",
+            "random ",
+            DirectiveType::Empty,
+            vec!["stuff".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -130,7 +139,12 @@ mod ut {
     #[test]
     fn test_from_basic_include_noarg() {
         let line = "TXTPP#include";
-        let expected = Some(Directive::new("", "", DirectiveType::Include, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Include,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -139,7 +153,12 @@ mod ut {
     #[test]
     fn test_from_basic_include_noarg_space() {
         let line = "TXTPP#include ";
-        let expected = Some(Directive::new("", "", DirectiveType::Include, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Include,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -148,7 +167,12 @@ mod ut {
     #[test]
     fn test_from_basic_include_noarg_many_spaces() {
         let line = "TXTPP#include  \t \t   ";
-        let expected = Some(Directive::new("", "", DirectiveType::Include, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Include,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -157,8 +181,12 @@ mod ut {
     #[test]
     fn test_from_basic_include_one_space() {
         let line = "TXTPP#include hello";
-        let expected =
-            Some(Directive::new("", "", DirectiveType::Include, vec!["hello".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Include,
+            vec!["hello".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -167,8 +195,12 @@ mod ut {
     #[test]
     fn test_from_basic_include_many_spaces() {
         let line = "TXTPP#include   \t \t hello";
-        let expected =
-            Some(Directive::new("", "", DirectiveType::Include, vec!["hello".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Include,
+            vec!["hello".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -177,8 +209,12 @@ mod ut {
     #[test]
     fn test_from_basic_include_trailing_spaces() {
         let line = "TXTPP#include   \t \t hello \t \t  ";
-        let expected =
-            Some(Directive::new("", "", DirectiveType::Include, vec!["hello".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Include,
+            vec!["hello".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -187,7 +223,12 @@ mod ut {
     #[test]
     fn test_from_basic_run_noarg() {
         let line = "TXTPP#run";
-        let expected = Some(Directive::new("", "", DirectiveType::Run, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Run,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -196,7 +237,12 @@ mod ut {
     #[test]
     fn test_from_basic_run_noarg_space() {
         let line = "TXTPP#run ";
-        let expected = Some(Directive::new("", "", DirectiveType::Run, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Run,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -205,7 +251,12 @@ mod ut {
     #[test]
     fn test_from_basic_run_noarg_many_spaces() {
         let line = "TXTPP#run  \t \t   ";
-        let expected = Some(Directive::new("", "", DirectiveType::Run, vec!["".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Run,
+            vec!["".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -214,8 +265,12 @@ mod ut {
     #[test]
     fn test_from_basic_run_one_space() {
         let line = "TXTPP#run hello";
-        let expected =
-            Some(Directive::new("", "", DirectiveType::Run, vec!["hello".to_string()]));
+        let expected = Some(Directive::new(
+            "",
+            "",
+            DirectiveType::Run,
+            vec!["hello".to_string()],
+        ));
         let actual = Directive::detect_from(line);
 
         assert_eq!(expected, actual);
@@ -289,6 +344,4 @@ mod ut {
 
         assert_eq!(expected, actual);
     }
-
-
 }

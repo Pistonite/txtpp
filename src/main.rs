@@ -1,18 +1,19 @@
-use txtpp::{execute, Config};
+use txtpp::{txtpp, Verbosity, Mode, Config};
 
 fn main() {
     env_logger::init();
     let config = Config {
+        base_dir: std::path::PathBuf::from("examples"),
         shell_cmd: "".to_string(),
-        inputs: vec!["..".to_string()],
+        inputs: vec![".".to_string()],
         recursive: true,
-        num_threads: 4,
-        verify: true,
-        verbosity: txtpp::Verbosity::Normal,
+        num_threads: 1,
+        mode: Mode::Clean,
+        verbosity: Verbosity::Quiet,
     };
-    if let Err(e) = execute(config) {
-        eprintln!("{:?}", e);
-    }
+
+
+    let _ = txtpp(config);
 
     println!("Hello, world!")
 }

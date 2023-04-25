@@ -20,7 +20,7 @@ Say you have 2 files `foo.txt.txtpp` and `bar.txt`
 (foo.txt.txtpp)                    (bar.txt)
 
   1 |hello                           1 |bar
-  2 |TXTPP#include bar.txt           2 |
+  2 |-TXTPP#include bar.txt          2 |
   3 |world
   4 | 
 ```
@@ -42,7 +42,7 @@ Say you have the file `foo.txt.txtpp`:
 (foo.txt.txtpp)                   
 
   1 |hello                           
-  2 |#run cat foo.txt.txtpp           
+  2 |-TXTPP#run cat foo.txt.txtpp           
   3 |world
   4 | 
 ```
@@ -52,7 +52,7 @@ Running `txtpp foo.txt` will produce `foo.txt`:
 
   1 |hello
   2 |hello
-  3 |#run cat foo.txt.txtpp
+  3 |-TXTPP#run cat foo.txt.txtpp
   3 |world
   4 |world
   5 |
@@ -81,7 +81,8 @@ Explanation:
 
 1. First line:
     - `{WHITESPACES}`: Any number of whitespace characters
-    - `{PREFIX1}`: Some text that does not start with a whitespace character, and does not include `TXTPP#`
+    - `{PREFIX1}`: Non-empty text that does not start with a whitespace character, and does not include `TXTPP#`
+      - The prefix must be non-empty for multi-line directives, otherwise you won't be able to terminate it.
     - `TXTPP#`: the prefix before the directive
     - `{DIRECTIVE}`: can be one of the directives
     - ` `: (space) At least one space between the directive name and its input. This will be trimmed.

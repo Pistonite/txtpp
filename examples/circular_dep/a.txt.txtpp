@@ -1,0 +1,7 @@
+In this example, the command we run is `txtpp a.txt.txtpp`.
+
+TXTPP#include c.txt
+We will see `c.txt` being produced from `c.txt.txtpp` because of the directive above.
+
+However, it will error below because b.txt has a circular dependency on a.txt
+TXTPP#include b.txt

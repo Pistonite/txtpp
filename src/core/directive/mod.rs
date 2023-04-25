@@ -3,8 +3,8 @@ use error_stack::{IntoReport, Report, Result};
 use std::error;
 use std::fmt;
 use std::path::PathBuf;
-
-use super::TagState;
+use crate::core::TagState;
+use log;
 
 mod directive_add_line;
 mod directive_fmt;
@@ -73,11 +73,13 @@ impl Directive {
             DirectiveType::Include => {
                 let arg = self.args.into_iter().next().unwrap_or_default();
                 let include_path = PathBuf::from(&arg);
+                let include_path = context.work_dir.as_path().join(&include_path);
                 // See if we need to store the dependency and come back later
                 if is_first_pass {
                     if let Some(x) = include_path.get_txtpp_file() {
+                        log::debug!("found dependency: {}", x.display());
                         *executing = false;
-                        let p_abs = AbsPath::try_from(x).map_err(|e| {
+                        let p_abs = context.work_dir.share_base(x).map_err(|e| {
                             e.change_context(DirectiveError).attach_printable(format!(
                                 "could not resolve include file: {}",
                                 include_path.display()
@@ -164,7 +166,11 @@ impl Directive {
             }
         }?;
         if let Some(output) = raw_output {
-            Ok(Some(Self::format_output(&self.whitespaces, &output, &context.line_ending)?))
+            Ok(Some(Self::format_output(
+                &self.whitespaces,
+                &output,
+                &context.line_ending,
+            )?))
         } else {
             Ok(None)
         }

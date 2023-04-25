@@ -10,10 +10,11 @@
 //! It also adds some convenience methods and helpers to convert to and from
 //! the standard library types.
 
-mod abs_path;
+use error_stack::{Report, Result};
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+mod abs_path;
 pub use abs_path::*;
 mod directory;
 pub use directory::*;
@@ -30,6 +31,10 @@ pub trait TxtppPath: Sized {
     fn get_txtpp_file(&self) -> Option<Self>;
     /// Check if the path has the txtpp extension itself
     fn is_txtpp_file(&self) -> bool;
+    /// Remove the txtpp extension from the path.
+    ///
+    /// If the path does not have the txtpp extension, an error will be returned.
+    fn trim_txtpp(&self) -> Result<Self, PathError>;
 }
 
 impl TxtppPath for PathBuf {
@@ -56,12 +61,22 @@ impl TxtppPath for PathBuf {
             None => OsString::from(TXTPP_EXT),
         };
         p.set_extension(ext);
-        
 
         if p.is_file() {
             Some(p)
         } else {
             None
         }
+    }
+
+    fn trim_txtpp(&self) -> Result<Self, PathError> {
+        if !self.is_txtpp_file() {
+            return Err(Report::new(PathError::from(self))
+                .attach_printable(format!("path does not {TXTPP_EXT} extension")));
+        }
+        let mut p = self.clone();
+        p.set_extension("");
+
+        Ok(p)
     }
 }

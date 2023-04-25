@@ -14,7 +14,7 @@ impl ReplaceLineEnding for str {
             }
             result.push_str(last);
         }
-                
+
         if has_trailing_newline {
             result.push_str(line_ending);
         }
@@ -58,6 +58,9 @@ mod ut {
     fn test_multiple_empty_lines_crlf() {
         assert_eq!("a\r\n\r\n", "a\n\n".replace_line_ending("\r\n", false));
         assert_eq!("a\r\n\r\na\r\n", "a\n\na".replace_line_ending("\r\n", true));
-        assert_eq!("a\r\n\r\r\n", "a\r\n\r\r\n".replace_line_ending("\r\n", false));
+        assert_eq!(
+            "a\r\n\r\r\n",
+            "a\r\n\r\r\n".replace_line_ending("\r\n", false)
+        );
     }
 }

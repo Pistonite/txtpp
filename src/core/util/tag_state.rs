@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+use crate::core::ReplaceLineEnding;
 use error_stack::{Report, Result};
-use std::fmt::{Display, Formatter};
+use std::collections::HashMap;
 use std::error::Error;
-use super::string::ReplaceLineEnding;
+use std::fmt::{Display, Formatter};
 
 pub struct TagState {
     listening: Option<String>,
-    stored: HashMap<String, String>
+    stored: HashMap<String, String>,
 }
 
 #[derive(Debug)]
@@ -57,15 +57,18 @@ impl TagState {
                 self.stored.insert(tag.clone(), content.to_string());
                 self.listening = None;
                 Ok(())
-            },
+            }
             None => Err(()),
         }
     }
 
     pub fn inject_tags(&mut self, output: &str, line_ending: &str) -> String {
-        let mut to_inject = self.stored.iter().map(|(k, v)| {
-            output.find(k).map(|i| (i, k, v))
-        }).flatten().collect::<Vec<_>>();
+        let mut to_inject = self
+            .stored
+            .iter()
+            .map(|(k, v)| output.find(k).map(|i| (i, k, v)))
+            .flatten()
+            .collect::<Vec<_>>();
         // sort by index
         to_inject.sort_by(|a, b| a.0.cmp(&b.0));
         let mut injected_output = String::new();
@@ -87,7 +90,6 @@ impl TagState {
         injected_output.push_str(line_ending);
         injected_output
     }
-
 }
 
 #[cfg(test)]
@@ -151,7 +153,10 @@ mod tests {
         tag_state.create("tag1").unwrap();
         assert!(tag_state.try_store("content1").is_ok());
         assert_eq!(None, tag_state.listening);
-        assert_eq!(Some("content1".to_string()), tag_state.stored.get("tag1").cloned());
+        assert_eq!(
+            Some("content1".to_string()),
+            tag_state.stored.get("tag1").cloned()
+        );
     }
 
     #[test]
@@ -245,8 +250,10 @@ mod tests {
         tag_state.create("tag3").unwrap();
         tag_state.try_store("content3\n\n").unwrap();
         let output = tag_state.inject_tags("asdftag1fg   tag2tag3asdf", "\r\n");
-        assert_eq!("asdfcont\r\nent1fg   \r\ncontent2\r\ncontent3\r\n\r\nasdf\r\n", &output);
+        assert_eq!(
+            "asdfcont\r\nent1fg   \r\ncontent2\r\ncontent3\r\n\r\nasdf\r\n",
+            &output
+        );
         assert_eq!(0, tag_state.stored.len());
     }
-    
 }

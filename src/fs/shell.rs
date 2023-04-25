@@ -7,6 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::process::Command;
 use which::which;
+use log;
 
 pub const TXTPP_FILE: &str = "TXTPP_FILE";
 
@@ -30,6 +31,7 @@ impl error::Error for ShellError {}
 
 /// Representation of a resolved shell command like `sh -c` or `cmd /C`
 /// that takes a command as argument.
+#[derive(Debug)]
 pub struct Shell {
     /// The shell executable
     exe: String,
@@ -68,15 +70,11 @@ impl Shell {
     }
 
     /// Run the shell with the given argument in the directory. Return the stdout.
-    pub fn run<P>(
-        &self,
-        command: &str,
-        work_dir: &P,
-        file: &str,
-    ) -> Result<String, ShellError>
+    pub fn run<P>(&self, command: &str, work_dir: &P, file: &str) -> Result<String, ShellError>
     where
         P: AsRef<Path>,
     {
+        log::debug!("shell command `{command}`");
         let result = Command::new(&self.exe)
             .current_dir(work_dir)
             .args(&self.args)
@@ -85,14 +83,16 @@ impl Shell {
             .output()
             .into_report()
             .map_err(|e| {
-                e.change_context(ShellError::ExecuteError).attach_printable(format!(
-                    "Failed to execute `{}` with shell `{}`",
-                    command, self
-                ))
-                
+                e.change_context(ShellError::ExecuteError)
+                    .attach_printable(format!(
+                        "Failed to execute `{}` with shell `{}`",
+                        command, self
+                    ))
             })?;
         if result.status.success() {
-            Ok(String::from_utf8_lossy(&result.stdout).to_string())
+            let output = String::from_utf8_lossy(&result.stdout).to_string();
+            log::debug!("shell output `{output}`");
+            Ok(output)
         } else {
             let exit_code = match result.status.code() {
                 Some(code) => code.to_string(),
@@ -104,7 +104,7 @@ impl Shell {
                     command,
                     exit_code,
                     String::from_utf8_lossy(&result.stderr).to_string()
-                ))
+                )),
             )
         }
     }
@@ -114,20 +114,20 @@ fn resolve_shell(exe: &str) -> Result<AbsPath, ShellError> {
     let p = which(exe).unwrap_or_else(|_| Path::new(exe).to_path_buf());
 
     let p = p.canonicalize().into_report().map_err(|e| {
-        e.change_context(ShellError::ResolveError).attach_printable(format!(
-            "could not resolve shell executable: {}",
-            p.display()
-        ))
-        
+        e.change_context(ShellError::ResolveError)
+            .attach_printable(format!(
+                "could not resolve shell executable: {}",
+                p.display()
+            ))
     })?;
 
     let path = p.display().to_string();
 
-    AbsPath::try_from(p).map_err(|e| {
-        e.change_context(ShellError::ResolveError).attach_printable(format!(
-            "could not convert shell executable to absolute path: {}",
-            path
-        ))
-        
+    AbsPath::create_base(p).map_err(|e| {
+        e.change_context(ShellError::ResolveError)
+            .attach_printable(format!(
+                "could not convert shell executable to absolute path: {}",
+                path
+            ))
     })
 }

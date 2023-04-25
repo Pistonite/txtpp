@@ -21,7 +21,11 @@ impl Directive {
                 return Ok(());
             }
             if line.starts_with(&self.prefix) || line.starts_with(&" ".repeat(self.prefix.len())) {
-                self.args.push(line[self.prefix.len()..].trim_end_matches(char::is_whitespace).to_string());
+                self.args.push(
+                    line[self.prefix.len()..]
+                        .trim_end_matches(char::is_whitespace)
+                        .to_string(),
+                );
                 return Ok(());
             }
         }
@@ -31,8 +35,8 @@ impl Directive {
 
 #[cfg(test)]
 mod ut {
-    use super::Directive;
     use super::super::DirectiveType;
+    use super::Directive;
 
     #[test]
     fn test_addln_empty() {
@@ -81,8 +85,7 @@ mod ut {
             DirectiveType::Empty,
             vec!["ababa\\".to_string()],
         );
-        let mut directive = Directive::detect_from(" \t \t prefixTXTPP# ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from(" \t \t prefixTXTPP# ababa\\").unwrap();
         assert!(directive.add_line(" \t \t prefi hellow").is_err());
         assert_eq!(expected, directive);
     }
@@ -95,8 +98,7 @@ mod ut {
             DirectiveType::Empty,
             vec!["ababa\\".to_string(), "hellow".to_string()],
         );
-        let mut directive = Directive::detect_from(" \t \t prefixTXTPP# ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from(" \t \t prefixTXTPP# ababa\\").unwrap();
         assert!(directive.add_line(" \t \t       hellow").is_ok());
         assert_eq!(expected, directive);
     }
@@ -109,8 +111,7 @@ mod ut {
             DirectiveType::Empty,
             vec!["ababa\\".to_string()],
         );
-        let mut directive = Directive::detect_from(" \t \t prefixTXTPP# ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from(" \t \t prefixTXTPP# ababa\\").unwrap();
         assert!(directive.add_line(" \t        hellow").is_err());
         assert_eq!(expected, directive);
     }
@@ -123,8 +124,7 @@ mod ut {
             DirectiveType::Run,
             vec!["ababa\\".to_string(), "hellow".to_string()],
         );
-        let mut directive = Directive::detect_from("    TXTPP#run ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from("    TXTPP#run ababa\\").unwrap();
         assert!(directive.add_line("    hellow").is_ok());
         assert_eq!(expected, directive);
     }
@@ -137,8 +137,7 @@ mod ut {
             DirectiveType::Run,
             vec!["ababa\\".to_string(), "hellowa".to_string()],
         );
-        let mut directive = Directive::detect_from("    TXTPP#run ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from("    TXTPP#run ababa\\").unwrap();
         assert!(directive.add_line("    hellowa  \t \t \t").is_ok());
         assert_eq!(expected, directive);
     }
@@ -151,8 +150,7 @@ mod ut {
             DirectiveType::Run,
             vec!["ababa\\".to_string()],
         );
-        let mut directive = Directive::detect_from("    // TXTPP#run ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from("    // TXTPP#run ababa\\").unwrap();
         assert!(directive.add_line("    //hellowa  \t \t \t").is_err());
         assert_eq!(expected, directive);
     }
@@ -165,8 +163,7 @@ mod ut {
             DirectiveType::Run,
             vec!["ababa\\".to_string(), "".to_string()],
         );
-        let mut directive = Directive::detect_from("    // TXTPP#run ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from("    // TXTPP#run ababa\\").unwrap();
         assert!(directive.add_line("    //").is_ok());
         assert_eq!(expected, directive);
     }
@@ -179,25 +176,16 @@ mod ut {
             DirectiveType::Include,
             vec!["ababa\\".to_string()],
         );
-        let mut directive = Directive::detect_from("    TXTPP#include ababa\\")
-            .unwrap();
+        let mut directive = Directive::detect_from("    TXTPP#include ababa\\").unwrap();
         assert!(directive.add_line("    hellow").is_err());
         assert_eq!(expected, directive);
     }
 
     #[test]
     fn test_addln_tag_single_line_only() {
-        let expected = Directive::new(
-            "    ",
-            "",
-            DirectiveType::Tag,
-            vec!["ababa\\".to_string()],
-        );
-        let mut directive = Directive::detect_from("    TXTPP#tag ababa\\")
-            .unwrap();
+        let expected = Directive::new("    ", "", DirectiveType::Tag, vec!["ababa\\".to_string()]);
+        let mut directive = Directive::detect_from("    TXTPP#tag ababa\\").unwrap();
         assert!(directive.add_line("    hellow").is_err());
         assert_eq!(expected, directive);
     }
- 
-
 }

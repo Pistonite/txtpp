@@ -1,8 +1,9 @@
-use super::{PathError, TxtppPath};
+use crate::fs::PathError;
 use std::fs;
 use std::path::{Path, PathBuf};
-
 use error_stack::{IntoReport, Report, Result};
+use log;
+use derivative::Derivative;
 
 pub const TXTPP_EXT: &str = "txtpp";
 
@@ -14,34 +15,16 @@ pub const TXTPP_EXT: &str = "txtpp";
 ///
 /// We still use [`PathBuf`] in places that usually represent input from the user,
 /// as it could be relative or absolute and may not exist.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Derivative)]
+#[derivative(PartialEq, Eq, Hash)]
 pub struct AbsPath {
+    /// Base
+    #[derivative(PartialEq = "ignore", Hash = "ignore")]
+    b: PathBuf,
+    /// Absolute path
     p: PathBuf,
 }
 
-impl TryFrom<PathBuf> for AbsPath {
-    type Error = Report<PathError>;
-
-    /// Convert a [`PathBuf`] to an absolute path.
-    ///
-    /// This will error if:
-    /// - the path doesn't exist
-    /// - the path cannot be made absolute for some reason
-    ///
-    /// If the path is relative, it will be made absolute by
-    /// using [`canonicalize`](std::path::Path::canonicalize)
-    fn try_from(p: PathBuf) -> Result<Self, PathError> {
-        if !p.exists() {
-            return Err(Report::new(PathError::from(&p)).attach_printable("path does not exist"));
-        }
-        let p_abs = p.canonicalize().into_report().map_err(|e| {
-            e.change_context(PathError::from(&p)).attach_printable("cannot resolve path as absolute")
-            
-        })?;
-
-        Ok(Self { p: p_abs })
-    }
-}
 
 /// Integration with [`PathBuf`] and [`Path`]
 impl AbsPath {
@@ -81,11 +64,46 @@ impl AsRef<Path> for AbsPath {
 }
 
 impl AbsPath {
-    /// Directly contruct from a [`PathBuf`]. Used ONLY for unit tests
-    pub fn new(p: PathBuf) -> Self
-    {
-        Self { p }
+    /// Directly contruct from a [`PathBuf`]. Used ONLY in unit tests
+    pub fn new(p: PathBuf) -> Self {
+        Self { b: p.clone(), p }
     }
+
+    /// Convert a [`PathBuf`] to an absolute path as a base
+    ///
+    /// This will error if:
+    /// - the path doesn't exist
+    /// - the path cannot be made absolute for some reason
+    ///
+    /// If the path is relative, it will be made absolute by
+    /// using [`canonicalize`](std::path::Path::canonicalize)
+    pub fn create_base(p: PathBuf) -> Result<Self, PathError> {
+        let p_abs = Self::make_abs(p)?;
+        Ok(Self { b: p_abs.clone(), p: p_abs })
+    }
+
+    /// Convert a [`PathBuf`] to an absolute path with the same base
+    ///
+    /// This will error if:
+    /// - the path doesn't exist
+    /// - the path cannot be made absolute for some reason
+    ///
+    /// If the path is relative, it will be made absolute by
+    /// using [`canonicalize`](std::path::Path::canonicalize)
+    pub fn share_base(&self, p: PathBuf) -> Result<Self, PathError> {
+        Ok(Self { b: self.b.clone(), p: Self::make_abs(p)? })
+    }
+
+    fn make_abs(p: PathBuf) -> Result<PathBuf, PathError>{
+        if !p.exists() {
+            return Err(Report::new(PathError::from(&p)).attach_printable("path does not exist"));
+        }
+        p.canonicalize().into_report().map_err(|e| {
+            e.change_context(PathError::from(&p))
+                .attach_printable("cannot resolve path as absolute")
+        })
+    }
+
     /// Resolve a path relative to the current path
     ///
     /// if `ext` is absolute, return `ext`, otherwise join `ext` with the current path.
@@ -96,58 +114,51 @@ impl AbsPath {
         P: AsRef<Path>,
     {
         let path: &Path = ext.as_ref();
-        let path = if path.is_absolute() {
+        let path_abs = if path.is_absolute() {
             path.to_path_buf()
         } else {
             self.p.join(path)
         };
-        if !path.exists() && create {
-            create_file(&path)?;
+        if !path_abs.exists() && create {
+            create_file(&path_abs)?;
         }
-        Self::try_from(path)
+        self.share_base(path_abs)
     }
 
     /// Get the parent
     pub fn parent(&self) -> Result<Self, PathError> {
-        let p_parent = match self.p.parent() {
+        let p_parent_abs = match self.p.parent() {
             Some(p) => p,
             None => {
-                return Err(Report::new(PathError::from(self)).attach_printable("cannot get parent directory"))
+                return Err(Report::new(PathError::from(self))
+                    .attach_printable("cannot get parent directory"))
             }
         };
-        Self::try_from(p_parent.to_path_buf())
-    }
-
-    /// Remove the txtpp extension and resolve the path.
-    ///
-    /// If the resulting path does not exist, a new file will be created if
-    /// `create` is true, otherwise an error will be returned.
-    ///
-    /// If the path does not have the txtpp extension, an error will be returned.
-    pub fn trim_txtpp(&self, create: bool) -> Result<Self, PathError> {
-        if !self.p.is_txtpp_file() {
-            return Err(Report::new(PathError::from(self)).attach_printable(format!("path does not {TXTPP_EXT} extension")));
-        }
-        let mut p = self.p.clone();
-        p.set_extension("");
         
-        if !p.exists() && create {
-            create_file(&p)?;
-        }
-        Self::try_from(p)
+        self.share_base(p_parent_abs.to_path_buf())
     }
-
 }
 
 impl std::fmt::Display for AbsPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.p.display())
+        if self.b == self.p {
+            return write!(f, "{}", self.p.display());
+        }
+        match self.p.strip_prefix(&self.b) {
+            Ok(p) => write!(f, "{}", p.display()),
+            Err(_) => write!(f, "{}", self.p.display()),
+        }
     }
 }
 
-fn create_file<P>(p: &P) -> Result<(), PathError> where P: AsRef<Path>{
+fn create_file<P>(p: &P) -> Result<(), PathError>
+where
+    P: AsRef<Path>,
+{
+    log::debug!("creating file: {}", p.as_ref().display());
     fs::File::create(&p).into_report().map_err(|e| {
-        e.change_context(PathError::from(&p)).attach_printable("cannot create file")
+        e.change_context(PathError::from(&p))
+            .attach_printable("cannot create file")
     })?;
     Ok(())
 }
