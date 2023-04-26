@@ -1,5 +1,5 @@
 # txtpp
-![Build Badge](https://img.shields.io/github/actions/workflow/status/iTNTPiston/txtpp/rust)
+![Build Badge](https://img.shields.io/github/actions/workflow/status/iTNTPiston/txtpp/rust.yml)
 ![Version Badge](https://img.shields.io/crates/v/txtpp)
 ![Docs Badge](https://img.shields.io/docsrs/txtpp)
 ![License Badge](https://img.shields.io/github/license/iTNTPiston/txtpp)
