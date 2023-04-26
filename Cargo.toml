@@ -1,6 +1,6 @@
 [package]
 name = "txtpp"
-version = "0.2.0"
+version = "0.1.1"
 edition = "2021"
 description = "A simple-to-use general purpose preprocessor for text files."
 repository = "https://github.com/iTNTPiston/txtpp"
@@ -9,7 +9,8 @@ authors = ["iTNTPiston <terrabyte100k@gmail.com>"]
 keywords = ["preprocessor", "tool", "template", "macro", "include"]
 categories = ["development-tools::build-utils", "template-engine"]
 exclude = [
-    "examples/**/*"
+    "examples/**/*",
+    ".github/**/*",
 ]
 
 
