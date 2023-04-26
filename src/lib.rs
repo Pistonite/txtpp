@@ -1,7 +1,13 @@
+//! # txtpp
+//! A simple-to-use general purpose preprocessor for text files.
+//! See the [README on GitHub](https://github.com/iTNTPiston/txtpp) for more information.
+//! 
 //! # txtpp as a library
+//! TODO
+//! 
 
 mod core;
-pub use crate::core::{txtpp, Txtpp, Config, Verbosity, Mode};
+pub use crate::core::{txtpp, Txtpp, Config, Verbosity, Mode, ExecuteError};
 mod fs;
 
 

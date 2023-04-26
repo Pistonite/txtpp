@@ -5,6 +5,7 @@
 use std::{path::{Path, PathBuf}, io::BufReader};
 use copy_dir::copy_dir;
 use murmur3::murmur3_32;
+use error_stack::Result;
 use txtpp::*;
 
 pub struct ItEnv {
@@ -47,7 +48,7 @@ impl ItEnv {
         &mut self.config
     }
 
-    pub fn run(&self) -> Result<(), ()> {
+    pub fn run(&self) -> Result<(), ExecuteError> {
        txtpp(self.config.clone())
     }
 

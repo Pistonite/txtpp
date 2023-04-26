@@ -1,7 +1,6 @@
 use crate::core::{verbs, DepManager, Progress, print_dep_map};
 use crate::fs::{AbsPath, Directory, PathError, Shell};
 use error_stack::{Report, Result};
-use log;
 use std::collections::HashSet;
 use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
@@ -14,7 +13,7 @@ mod config;
 pub use config::*;
 
 mod error;
-use error::ExecuteError;
+pub use error::ExecuteError;
 mod preprocess;
 pub use preprocess::PreprocessError;
 use preprocess::{do_preprocess, PreprocessResult};
@@ -26,15 +25,15 @@ use scan_dir::scan_dir;
 /// Run txtpp with the given config
 ///
 /// This is the main entry point for txtpp. It takes a [`Config`] and runs txtpp.
-/// If an error occurs, it will be printed to stderr and the function will return [`Err`].
+/// If an error occurs, it will be printed to stderr.
 ///
-/// If you want to retrieve the error object instead of printing it, use [`Txtpp::run`].
-pub fn txtpp(config: Config) -> std::result::Result<(), ()> {
+/// If you want to retrieve the error report without printing it, use [`Txtpp::run`].
+pub fn txtpp(config: Config) -> Result<(), ExecuteError> {
     match Txtpp::run(config) {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("{:?}", e);
-            Err(())
+            Err(e)
         }
     }
 }

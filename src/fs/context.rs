@@ -25,7 +25,7 @@ impl Context {
         let input_path = input_file.to_string();
         
         let line_ending = input_file.get_line_ending();
-        let r = File::open(&input_file)
+        let r = File::open(input_file)
             .map(BufReader::new)
             .into_report()
             .map_err(|e| {
@@ -98,9 +98,9 @@ impl Context {
         let expected = match self.out {
             CtxOut::Str(s) => s,
             CtxOut::File(_) => {
-                return Err(Report::new(CtxError::Other).attach_printable(format!(
+                return Err(Report::new(CtxError::Other).attach_printable(
                     "verifying output content but output is a stream",
-                )));
+                ));
             }
         };
         let actual = std::fs::read_to_string(p).into_report().map_err(|e| {
@@ -108,10 +108,10 @@ impl Context {
                 .attach_printable(format!("could not open file: `{}`", p.display()))
         })?;
         if expected != actual {
-            return Err(Report::new(CtxError::Mismatch).attach_printable(format!(
+            Err(Report::new(CtxError::Mismatch).attach_printable(format!(
                 "file `{}` is different from fresh output.",
                 p.display()
-            )));
+            )))
         } else {
             Ok(())
         }

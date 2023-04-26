@@ -36,7 +36,7 @@ impl TagState {
         }
         for k in self.stored.keys() {
             if k.starts_with(tag) || tag.starts_with(k) {
-                if k == &tag {
+                if k == tag {
                     return Err(Report::new(TagStateError).attach_printable(format!(
                         "Cannot create new tag {tag} when a tag with the same name is still listening"
                     )));
@@ -66,8 +66,7 @@ impl TagState {
         let mut to_inject = self
             .stored
             .iter()
-            .map(|(k, v)| output.find(k).map(|i| (i, k, v)))
-            .flatten()
+            .filter_map(|(k, v)| output.find(k).map(|i| (i, k, v)))
             .collect::<Vec<_>>();
         // sort by index
         to_inject.sort_by(|a, b| a.0.cmp(&b.0));

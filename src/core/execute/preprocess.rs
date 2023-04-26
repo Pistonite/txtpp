@@ -3,7 +3,6 @@ use crate::fs::{AbsPath, Context, Shell};
 use error_stack::{Result, Report};
 use std::error;
 use std::fmt;
-use log;
 
 /// Preprocess the txtpp file
 ///
@@ -20,7 +19,7 @@ pub fn do_preprocess(
     is_first_pass: bool,
 ) -> Result<PreprocessResult, PreprocessError> {
     // Open the preprocessor context
-    let mut context = Context::new(&input_file, mode == Mode::Build).map_err(|e| {
+    let mut context = Context::new(input_file, mode == Mode::Build).map_err(|e| {
         e.change_context(PreprocessError::File(input_file.clone()))
             .attach_printable("failed to initialize context.")
     })?;

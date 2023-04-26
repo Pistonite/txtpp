@@ -2,7 +2,6 @@ use crate::fs::PathError;
 use std::fs;
 use std::path::{Path, PathBuf};
 use error_stack::{IntoReport, Report, Result};
-use log;
 use derivative::Derivative;
 
 pub const TXTPP_EXT: &str = "txtpp";
@@ -156,8 +155,8 @@ where
     P: AsRef<Path>,
 {
     log::debug!("creating file: {}", p.as_ref().display());
-    fs::File::create(&p).into_report().map_err(|e| {
-        e.change_context(PathError::from(&p))
+    fs::File::create(p).into_report().map_err(|e| {
+        e.change_context(PathError::from(p))
             .attach_printable("cannot create file")
     })?;
     Ok(())

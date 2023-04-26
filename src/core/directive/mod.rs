@@ -4,7 +4,6 @@ use std::error;
 use std::fmt;
 use std::path::PathBuf;
 use crate::core::TagState;
-use log;
 
 mod directive_add_line;
 mod directive_fmt;
@@ -54,26 +53,26 @@ impl Directive {
         let raw_output = match self.directive_type {
             DirectiveType::Empty => {
                 // do nothing (consume the line)
-                Ok(None)
+                None
             }
             DirectiveType::Run => {
                 if *executing {
                     let command = self.args.join(" ");
-                    shell
+                    let output = shell
                         .run(&command, &context.work_dir, &context.input_path)
                         .map_err(|e| {
                             e.change_context(DirectiveError)
                                 .attach_printable(format!("failed to run command: {command}."))
-                        })
-                        .map(Option::Some)
+                        })?;
+                    Some(output)
                 } else {
-                    Ok(None)
+                    None
                 }
             }
             DirectiveType::Include => {
                 let arg = self.args.into_iter().next().unwrap_or_default();
                 let include_path = PathBuf::from(&arg);
-                let include_path = context.work_dir.as_path().join(&include_path);
+                let include_path = context.work_dir.as_path().join(include_path);
                 // See if we need to store the dependency and come back later
                 if is_first_pass {
                     if let Some(x) = include_path.get_txtpp_file() {
@@ -99,16 +98,16 @@ impl Directive {
                                     include_path.display()
                                 ))
                             })?;
-                    std::fs::read_to_string(&include_file)
+                    let output = std::fs::read_to_string(&include_file)
                         .into_report()
                         .map_err(|e| {
                             e.change_context(DirectiveError).attach_printable(format!(
                                 "could not read include file: {include_file}"
                             ))
-                        })
-                        .map(Option::Some)
+                        })?;
+                   Some(output)
                 } else {
-                    Ok(None)
+                    None
                 }
             }
             DirectiveType::Temp => {
@@ -117,16 +116,16 @@ impl Directive {
                         Some(p) => {
                             let p = PathBuf::from(p);
                             if p.is_dir() {
-                                return Err(Report::new(DirectiveError).attach_printable(format!(
-                                    "invalid temp directive: cannot export to directory",
-                                )));
+                                return Err(Report::new(DirectiveError).attach_printable(
+                                    "invalid temp directive: cannot export to directory"
+                                ));
                             }
                             p
                         }
                         None => {
-                            return Err(Report::new(DirectiveError).attach_printable(format!(
-                                "invalid temp directive: no export file path specified",
-                            )));
+                            return Err(Report::new(DirectiveError).attach_printable(
+                                "invalid temp directive: no export file path specified"
+                            ));
                         }
                     };
 
@@ -145,14 +144,14 @@ impl Directive {
                                     export_path.display()
                                 ))
                             })?;
-                    std::fs::write(&export_file, contents)
+                    std::fs::write(export_file, contents)
                         .into_report()
                         .map_err(|e| {
                             e.change_context(DirectiveError)
                                 .attach_printable("could not write temp file")
                         })?;
                 }
-                Ok(None)
+                None
             }
             DirectiveType::Tag => {
                 if *executing {
@@ -162,14 +161,27 @@ impl Directive {
                             .attach_printable(format!("could not create tag: {tag_name}"))
                     })?;
                 }
-                Ok(None)
+                None
+            },
+            DirectiveType::Write => {
+                if *executing {
+                    let mut contents = String::new();
+                    self.args.iter().skip(1).for_each(|s| {
+                        contents.push_str(s);
+                        contents.push_str(context.line_ending);
+                    });
+                    Some(contents)
+                } else {
+                    None
+                }
+                
             }
-        }?;
+        };
         if let Some(output) = raw_output {
             Ok(Some(Self::format_output(
                 &self.whitespaces,
                 &output,
-                &context.line_ending,
+                context.line_ending,
             )?))
         } else {
             Ok(None)
@@ -190,6 +202,8 @@ pub enum DirectiveType {
     Tag,
     /// Temp directive, argument is file content
     Temp,
+    /// Write directive, argument is file content
+    Write
 }
 
 impl TryFrom<&str> for DirectiveType {
@@ -202,6 +216,7 @@ impl TryFrom<&str> for DirectiveType {
             "run" => Ok(DirectiveType::Run),
             "tag" => Ok(DirectiveType::Tag),
             "temp" => Ok(DirectiveType::Temp),
+            "write" => Ok(DirectiveType::Write),
             _ => Err(()),
         }
     }
@@ -210,11 +225,7 @@ impl TryFrom<&str> for DirectiveType {
 impl DirectiveType {
     /// Does directive support multi-line arguments
     pub fn supports_multi_line(&self) -> bool {
-        match self {
-            DirectiveType::Include => false,
-            DirectiveType::Tag => false,
-            _ => true,
-        }
+        !matches!(self, DirectiveType::Include | DirectiveType::Tag)
     }
 }
 

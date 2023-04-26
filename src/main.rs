@@ -1,5 +1,4 @@
 use clap::{Args, Parser, Subcommand};
-use log;
 use std::process::ExitCode;
 use txtpp::{txtpp, Config, Mode, Verbosity};
 

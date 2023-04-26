@@ -6,7 +6,7 @@ impl ReplaceLineEnding for str {
     fn replace_line_ending(&self, line_ending: &str, force_trailing_newline: bool) -> String {
         let has_trailing_newline = force_trailing_newline || self.ends_with('\n');
         let mut result = String::new();
-        let lines = self.lines().into_iter().collect::<Vec<_>>();
+        let lines = self.lines().collect::<Vec<_>>();
         if let Some(last) = lines.last() {
             for line in &lines[..lines.len() - 1] {
                 result.push_str(line);

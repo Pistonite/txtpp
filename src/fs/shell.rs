@@ -7,7 +7,6 @@ use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::process::Command;
 use which::which;
-use log;
 
 pub const TXTPP_FILE: &str = "TXTPP_FILE";
 
@@ -103,7 +102,7 @@ impl Shell {
                     "Subcommand `{}` failed with exit code {}: {}",
                     command,
                     exit_code,
-                    String::from_utf8_lossy(&result.stderr).to_string()
+                    String::from_utf8_lossy(&result.stderr)
                 )),
             )
         }

@@ -1,14 +1,14 @@
 # txtpp
-A (really) simple-to-use general purpose preprocessor for text files, written in rust.
+A simple-to-use general purpose preprocessor for text files, written in rust.
 
 You can:
 - Include another file in the current file, much like C-style `#include`
 - Execute a command in the middle of the current file and include the output
 
-You can use `txtpp` both as a command line tool, or as a library with the rust crate.
+You can use `txtpp` both as a command line tool, or as a library with the rust crate. `txtpp` is well tested with unit tests and integration tests.
 
 # Installation
-Install the binary with [`cargo`]()
+Install with `cargo`
 ```
 cargo install txtpp
 ```
@@ -58,6 +58,23 @@ Running `txtpp foo.txt` will produce `foo.txt`:
   5 |
 ```
 
+More examples can be found in the [examples](examples) directory. These are also used as integration tests.
+
+# Table of Contents
+- [Feature Summary](#feature-summary)
+- [Directives](#directives)
+  - [Syntax](#syntax)
+  - [Output](#output)
+  - [Specification](#specification)
+    - [Include Directive](#include-directive)
+    - [Run Directive](#run-directive)
+    - [Temp Directive](#temp-directive)
+    - [Tag Directive](#tag-directive)
+    - [Write Directive](#write-directive)
+- [Output Specification](#output-specification)
+- [API Doc](https://docs.rs/txtpp)
+- [Command Line Interface](#command-line-interface)
+
 # Feature Summary
 `txtpp` provides directives that you can use in the `.txtpp` files.
 A directive replaces itself with the output of the directive.
@@ -66,6 +83,7 @@ The directives are all prefixed with `TXTPP#`:
 - `run` - Run a command and include the output of the command.
 - `temp` - Store text into a temporary file next to the input file.
 - `tag` - Hold the output of the next directive until a tag is seen, and replace the tag with the output.
+- `write` - Write content to the output file. Can be used for escaping directives. 
 
 # Directives
 ## Syntax
@@ -195,7 +213,7 @@ In both scenarios, the entire block comment `/**/` will be replaced with the out
 #### USAGE
 This directive is used to create a temporary file that can be referenced by `run`
 #### ARGUMENTS
-The first argument specifies the `FILE_PATH` to save the output. The rest of the arguments are joined by [line endings](#line-endings) to form the `CONTENT`, with a trailing line ending.
+Must have at least 1 argument. The first argument specifies the `FILE_PATH` to save the output. The rest of the arguments are joined by [line endings](#line-endings) to form the `CONTENT`, with a trailing line ending.
 #### BEHAVIOR
 - `FILE_PATH` is resolved the same way as the [include directive](#include-directive)
 - `FILE_PATH` cannot end in `.txtpp`. It will cause an error.
@@ -244,7 +262,6 @@ In this example, we want the output to be exactly as is because of the `<pre>` t
 ```html
 <div>
   <!-- TXTPP#tag PRE_CONTENT -->
-  
   <!-- TXTPP#run python gen_pre.py
   
        TXTPP# -->
@@ -260,6 +277,25 @@ The following is invalid because the tag is used before the output is stored.
   
        TXTPP# -->
 </div>
+```
+
+### Write Directive
+#### USAGE
+This directive writes its arguments to the output file. It can be used to escape other directives.
+#### ARGUMENTS
+Can have more than one line. Each argument is one line in the output
+#### BEHAVIOR
+- The arguments will be written to the output file as is.
+- Because the content is treated as output of a directive, tags won't be injected.
+#### EXAMPLE
+```
+-TXTPP#write the line below will be written to the output file as is
+-TXTPP#run echo "hello world"
+```
+Output
+```
+the line below will be written to the output file as is
+TXTPP#run echo "hello world"
 ```
 
 # Output Specification

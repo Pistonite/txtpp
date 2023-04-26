@@ -344,4 +344,46 @@ mod ut {
 
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn test_detect_temp() {
+        let line = "  random TXTPP#temp stuff\t\t";
+        let expected = Some(Directive::new(
+            "  ",
+            "random ",
+            DirectiveType::Temp,
+            vec!["stuff".to_string()],
+        ));
+        let actual = Directive::detect_from(line);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_detect_tag() {
+        let line = "  random TXTPP#tag stuff\t\t";
+        let expected = Some(Directive::new(
+            "  ",
+            "random ",
+            DirectiveType::Tag,
+            vec!["stuff".to_string()],
+        ));
+        let actual = Directive::detect_from(line);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_detect_write() {
+        let line = "  random TXTPP#write stuff\t\t";
+        let expected = Some(Directive::new(
+            "  ",
+            "random ",
+            DirectiveType::Write,
+            vec!["stuff".to_string()],
+        ));
+        let actual = Directive::detect_from(line);
+
+        assert_eq!(expected, actual);
+    }
 }

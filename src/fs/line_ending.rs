@@ -4,12 +4,12 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-pub const CRLF: &'static str = "\r\n";
-pub const LF: &'static str = "\n";
+pub const CRLF: &str = "\r\n";
+pub const LF: &str = "\n";
 #[cfg(windows)]
-pub const OS_LINE_ENDING: &'static str = CRLF;
+pub const OS_LINE_ENDING: &str = CRLF;
 #[cfg(not(windows))]
-pub const OS_LINE_ENDING: &'static str = LF;
+pub const OS_LINE_ENDING: &str = LF;
 
 pub trait GetLineEnding {
     fn get_line_ending(&self) -> &'static str;
