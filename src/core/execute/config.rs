@@ -1,13 +1,13 @@
-use std::path::PathBuf;
 use crate::core::verbs;
+use std::path::PathBuf;
 
 /// Config for running txtpp
-/// 
+///
 /// Use this to configure txtpp when calling it from the library
 /// # Example
 /// ```
 /// use txtpp::{Txtpp, Config, Verbosity};
-/// 
+///
 /// // Use the default config
 /// let mut cfg = Config::default();
 /// // Change verbosity to verbose
@@ -34,7 +34,7 @@ pub struct Config {
 
 impl Default for Config {
     /// Get the default config.
-    /// 
+    ///
     /// This means:
     /// - Running from the current directory
     /// - Using the platform-specific default shell
@@ -72,7 +72,7 @@ pub enum Mode {
     /// Delete output files
     Clean,
     /// Verify output files are the same as fresh output
-    Verify
+    Verify,
 }
 
 impl Mode {

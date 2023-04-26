@@ -1,0 +1,7 @@
+This example writes to a temp file, then include it
+ +TXTPP#temp temp.out
+ + this is content
+ + in the temp.out file
+This line should be in the output
+Now we include it
+TXTPP#include temp.out

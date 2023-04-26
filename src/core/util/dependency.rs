@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet};
 use crate::fs::AbsPath;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
 /// Dependency Manager
@@ -93,7 +93,6 @@ pub fn print_dep_map(map: &HashMap<AbsPath, HashSet<AbsPath>>) -> String {
     }
     out
 }
-
 
 #[cfg(test)]
 mod ut {

@@ -10,6 +10,7 @@
 //! It also adds some convenience methods and helpers to convert to and from
 //! the standard library types.
 
+use crate::error::PathError;
 use error_stack::{Report, Result};
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -18,8 +19,6 @@ mod abs_path;
 pub use abs_path::*;
 mod directory;
 pub use directory::*;
-mod error;
-pub use error::*;
 
 pub trait TxtppPath: Sized {
     /// Get the path with the txtpp extension,

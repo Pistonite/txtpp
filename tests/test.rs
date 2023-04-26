@@ -1,10 +1,9 @@
 mod common;
-use common::ItEnv;
+use common::*;
 
 use txtpp::*;
-#[test]
-fn test_include_simple_build_verify_clean() {
-    let mut env = ItEnv::new("test_include_simple_build_verify_clean", "examples/include");
+
+testit!(examples__include, |env| {
     env.cfg().mode = Mode::Verify;
     // before output
     assert!(env.run().is_err());
@@ -19,30 +18,36 @@ fn test_include_simple_build_verify_clean() {
     env.cfg().mode = Mode::Clean;
     assert!(env.run().is_ok());
     env.assert_path_exists("foo.txt", false);
-}
+});
 
 #[cfg(not(windows))]
-#[test]
-fn test_run_simple_build() {
-    let mut env = ItEnv::new("test_run_simple_build", "examples/run");
+testit!(examples__run, |env| {
     env.cfg().mode = Mode::Build;
     env.cfg().inputs = vec!["foo.txt.txtpp".to_string()];
     assert!(env.run().is_ok());
     env.assert_file_eq("foo.txt", "foo.txt.expected");
     env.cfg().inputs = vec!["invalid.txtpp".to_string()];
     assert!(env.run().is_err());
-}
+});
 
-#[test]
-fn test_circular_dep() {
-    let mut env = ItEnv::new("test_circular_dep", "examples/circular_dep");
+testit!(examples__circular_dep, |env| {
     env.cfg().mode = Mode::Build;
     env.cfg().inputs = vec!["a.txt".to_string()];
     assert!(env.run().is_err());
     env.assert_file_eq("c.txt", "c.txt.expected");
-}
+});
 
-
+testit!(examples__temp__write_clean, |env| {
+    assert!(env.run().is_ok());
+    // content should match
+    env.assert_file_eq("exp", "exp.expected");
+    env.assert_file_eq("temp.out", "temp.out.expected");
+    // but should when running clean
+    env.cfg().mode = Mode::Clean;
+    assert!(env.run().is_ok());
+    env.assert_path_exists("temp.out", false);
+    env.assert_path_exists("exp.txt", false);
+});
 
 // #[test]
 // fn test_include_simple_verify_fail() {

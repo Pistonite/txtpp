@@ -1,5 +1,6 @@
-use crate::core::{verbs, DepManager, Progress, print_dep_map};
-use crate::fs::{AbsPath, Directory, PathError, Shell};
+use crate::core::{print_dep_map, verbs, DepManager, Progress};
+use crate::error::{PathError, PpError, TxtppError};
+use crate::fs::{AbsPath, Directory, Shell};
 use error_stack::{Report, Result};
 use std::collections::HashSet;
 use std::sync::mpsc;
@@ -12,11 +13,8 @@ use threadpool::ThreadPool;
 mod config;
 pub use config::*;
 
-mod error;
-pub use error::ExecuteError;
-mod preprocess;
-pub use preprocess::PreprocessError;
-use preprocess::{do_preprocess, PreprocessResult};
+mod pp;
+use pp::{do_preprocess, PreprocessResult};
 mod resolve_inputs;
 use resolve_inputs::resolve_inputs;
 mod scan_dir;
@@ -28,7 +26,7 @@ use scan_dir::scan_dir;
 /// If an error occurs, it will be printed to stderr.
 ///
 /// If you want to retrieve the error report without printing it, use [`Txtpp::run`].
-pub fn txtpp(config: Config) -> Result<(), ExecuteError> {
+pub fn txtpp(config: Config) -> Result<(), TxtppError> {
     match Txtpp::run(config) {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -54,11 +52,11 @@ pub struct Txtpp {
     /// The Receiver for the main thread to receive results
     recv: mpsc::Receiver<TaskResult>,
     /// Files in the build system
-    /// 
+    ///
     /// This is to track we don't unnecessarily process the same file twice in the first pass
     files: HashSet<AbsPath>,
     /// The verb for the current processing mode (e.g. "Txtpping", "Cleaning", "Verifying")
-    process_verb: &'static str
+    process_verb: &'static str,
 }
 
 impl Txtpp {
@@ -66,12 +64,12 @@ impl Txtpp {
     ///
     /// This is what [`txtpp`] calls internally. The difference is that this function
     /// returns the error instead of printing it.
-    pub fn run(config: Config) -> Result<(), ExecuteError> {
+    pub fn run(config: Config) -> Result<(), TxtppError> {
         log::info!("creating txtpp");
         log::debug!("using config: {:?}", config);
 
         let shell = Arc::new(Shell::new(&config.shell_cmd).map_err(|e| {
-            e.change_context(ExecuteError).attach_printable(format!(
+            e.change_context(TxtppError).attach_printable(format!(
                 "cannot parse shell command: {cmd}",
                 cmd = config.shell_cmd
             ))
@@ -96,7 +94,7 @@ impl Txtpp {
         runtime.run_internal()
     }
 
-    fn run_internal(mut self) -> Result<(), ExecuteError> {
+    fn run_internal(mut self) -> Result<(), TxtppError> {
         let _ =
             self.progress
                 .print_status(verbs::USING, &self.shell.to_string(), Color::Yellow, false);
@@ -108,19 +106,17 @@ impl Txtpp {
         );
 
         let base_abs_path = AbsPath::create_base(self.config.base_dir.clone()).map_err(|e| {
-            e.change_context(ExecuteError)
+            e.change_context(TxtppError)
                 .attach_printable("cannot resolve base directory")
         })?;
         let inputs: Directory =
             resolve_inputs(&self.config.inputs, &base_abs_path).map_err(|e| {
-                e.change_context(ExecuteError)
+                e.change_context(TxtppError)
                     .attach_printable("cannot resolve inputs")
             })?;
         let mut dep_mgr = DepManager::new();
         let mut file_count = 0;
-        let _ = self
-            .progress
-            .add_total(inputs.subdirs.len());
+        let _ = self.progress.add_total(inputs.subdirs.len());
 
         // schedule input files
         for file in inputs.files {
@@ -144,7 +140,7 @@ impl Txtpp {
                 }
                 Err(TryRecvError::Disconnected) => {
                     // workers are disconnected unexpectedly
-                    return Err(Report::new(ExecuteError)
+                    return Err(Report::new(TxtppError)
                         .attach_printable("workers are disconnected unexpectedly."));
                 }
             };
@@ -157,12 +153,10 @@ impl Txtpp {
                             .progress
                             .print_status(verbs::FAILED, "", Color::Red, false);
                         self.progress.add_done_quiet(1);
-                        e.change_context(ExecuteError)
+                        e.change_context(TxtppError)
                             .attach_printable("cannot scan directory")
                     })?;
-                    let _ = self
-                        .progress
-                        .add_total(directory.subdirs.len());
+                    let _ = self.progress.add_total(directory.subdirs.len());
                     for file in directory.files {
                         self.execute_file(file, true);
                     }
@@ -176,7 +170,7 @@ impl Txtpp {
                             .progress
                             .print_status(verbs::FAILED, "", Color::Red, false);
                         self.progress.add_done_quiet(1);
-                        e.change_context(ExecuteError)
+                        e.change_context(TxtppError)
                     })?;
                     match preprocess_result {
                         PreprocessResult::HasDeps(input, deps) => {
@@ -208,7 +202,7 @@ impl Txtpp {
             let _ = self
                 .progress
                 .print_status(verbs::FAILED, "", Color::Red, false);
-            return Err(Report::new(ExecuteError)
+            return Err(Report::new(TxtppError)
                 .attach_printable("Circular dependencies are found:")
                 .attach_printable(print_dep_map(&remaining)));
         }
@@ -298,5 +292,5 @@ impl Drop for Txtpp {
 
 enum TaskResult {
     ScanDir(Result<Directory, PathError>),
-    Preprocess(Result<PreprocessResult, PreprocessError>),
+    Preprocess(Result<PreprocessResult, PpError>),
 }

@@ -1,8 +1,8 @@
-use crate::fs::PathError;
+use crate::error::PathError;
+use derivative::Derivative;
+use error_stack::{IntoReport, Report, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
-use error_stack::{IntoReport, Report, Result};
-use derivative::Derivative;
 
 pub const TXTPP_EXT: &str = "txtpp";
 
@@ -23,7 +23,6 @@ pub struct AbsPath {
     /// Absolute path
     p: PathBuf,
 }
-
 
 /// Integration with [`PathBuf`] and [`Path`]
 impl AbsPath {
@@ -78,7 +77,10 @@ impl AbsPath {
     /// using [`canonicalize`](std::path::Path::canonicalize)
     pub fn create_base(p: PathBuf) -> Result<Self, PathError> {
         let p_abs = Self::make_abs(p)?;
-        Ok(Self { b: p_abs.clone(), p: p_abs })
+        Ok(Self {
+            b: p_abs.clone(),
+            p: p_abs,
+        })
     }
 
     /// Convert a [`PathBuf`] to an absolute path with the same base
@@ -90,10 +92,13 @@ impl AbsPath {
     /// If the path is relative, it will be made absolute by
     /// using [`canonicalize`](std::path::Path::canonicalize)
     pub fn share_base(&self, p: PathBuf) -> Result<Self, PathError> {
-        Ok(Self { b: self.b.clone(), p: Self::make_abs(p)? })
+        Ok(Self {
+            b: self.b.clone(),
+            p: Self::make_abs(p)?,
+        })
     }
 
-    fn make_abs(p: PathBuf) -> Result<PathBuf, PathError>{
+    fn make_abs(p: PathBuf) -> Result<PathBuf, PathError> {
         if !p.exists() {
             return Err(Report::new(PathError::from(&p)).attach_printable("path does not exist"));
         }
@@ -133,7 +138,7 @@ impl AbsPath {
                     .attach_printable("cannot get parent directory"))
             }
         };
-        
+
         self.share_base(p_parent_abs.to_path_buf())
     }
 }

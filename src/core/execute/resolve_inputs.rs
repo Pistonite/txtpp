@@ -1,4 +1,5 @@
-use crate::fs::{AbsPath, Directory, TxtppPath, PathError};
+use crate::error::PathError;
+use crate::fs::{AbsPath, Directory, TxtppPath};
 use error_stack::Result;
 
 pub fn resolve_inputs(inputs: &[String], base_abs_path: &AbsPath) -> Result<Directory, PathError> {

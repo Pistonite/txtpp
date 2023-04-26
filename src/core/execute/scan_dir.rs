@@ -1,4 +1,5 @@
-use crate::fs::{AbsPath, Directory, PathError, TxtppPath};
+use crate::error::PathError;
+use crate::fs::{AbsPath, Directory, TxtppPath};
 use error_stack::{IntoReport, Result};
 
 pub fn scan_dir(dir: &AbsPath, recursive: bool) -> Result<Directory, PathError> {
