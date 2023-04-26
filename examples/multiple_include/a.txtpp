@@ -1,0 +1,9 @@
+Include 3 files here, which each depend on 1-2 files
+
+// TXTPP#include b
+// TXTPP#include c
+because include does not support multi-line, we can write the includes in consecutive lines
+   // TXTPP#include b
+ // TXTPP#include d
+
+we can also include the same file multiple times (b is included twice)

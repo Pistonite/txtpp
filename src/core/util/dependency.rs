@@ -8,6 +8,7 @@ use std::fmt::Write;
 pub struct DepManager {
     out_edge_counts: HashMap<AbsPath, usize>, // Count how many dependencies one vertex has
     in_edges: HashMap<AbsPath, HashSet<AbsPath>>, // V -> K edges (V depends on K)
+    finished: HashSet<AbsPath>,               // Set of finished vertices
 }
 
 impl DepManager {
@@ -16,6 +17,7 @@ impl DepManager {
         Self {
             out_edge_counts: HashMap::new(),
             in_edges: HashMap::new(),
+            finished: HashSet::new(),
         }
     }
 
@@ -23,12 +25,18 @@ impl DepManager {
     ///
     /// The first argument `A` depends on all of the file `B`s in the second argument.
     /// This will add `A -> B` edges to the graph for every B in the second argument.
-    pub fn add_dependency(&mut self, depender: &AbsPath, dependencies: &[AbsPath]) {
+    ///
+    /// Return true if `A` has any out edge.
+    pub fn add_dependency(&mut self, depender: &AbsPath, dependencies: &[AbsPath]) -> bool {
         if dependencies.is_empty() {
-            return;
+            return false;
         }
+        let mut added = false;
         let dependency_count = self.out_edge_counts.entry(depender.clone()).or_insert(0);
         for dependency in dependencies {
+            if self.finished.contains(dependency) {
+                continue;
+            }
             let dependers = self
                 .in_edges
                 .entry(dependency.clone())
@@ -37,7 +45,12 @@ impl DepManager {
             if dependers.insert(depender.clone()) {
                 *dependency_count += 1;
             }
+            added = true;
         }
+        // It's fine to not revert the added vertice even if it has no out edge
+        // because we use in_edges to traverse the graph.
+        // The empty vertices will never be visited
+        added
     }
 
     /// Notify a file `B` has finished processing
@@ -45,6 +58,7 @@ impl DepManager {
     /// This assumes `B` has no out edges and removes all (in) edges of `B`.
     /// For each `A -> B` edge removed, if `A` has no more out edges after the removal, `A` is added to the output.
     pub fn notify_finish(&mut self, finished: &AbsPath) -> HashSet<AbsPath> {
+        self.finished.insert(finished.clone());
         // Get all dependers of finished
         let mut output = HashSet::new();
         let in_edges = match self.in_edges.remove(finished) {
@@ -112,7 +126,7 @@ mod ut {
     fn test_insert_empty() {
         let mut dm = DepManager::new();
         let finished = AbsPath::new(PathBuf::from("/a"));
-        dm.add_dependency(&finished, &[]);
+        assert!(!dm.add_dependency(&finished, &[]));
         let free = dm.notify_finish(&finished);
         assert_eq!(free, HashSet::new());
     }
@@ -122,7 +136,7 @@ mod ut {
         let mut dm = DepManager::new();
         let a = AbsPath::new(PathBuf::from("/a"));
         let b = AbsPath::new(PathBuf::from("/b"));
-        dm.add_dependency(&a, &[b.clone()]);
+        assert!(dm.add_dependency(&a, &[b.clone()]));
         let free = dm.notify_finish(&b);
         assert_eq!(free, [a].into_iter().collect());
     }
@@ -133,7 +147,7 @@ mod ut {
         let a = AbsPath::new(PathBuf::from("/a"));
         let b = AbsPath::new(PathBuf::from("/b"));
         let c = AbsPath::new(PathBuf::from("/c"));
-        dm.add_dependency(&a, &[b.clone()]);
+        assert!(dm.add_dependency(&a, &[b.clone()]));
         let free = dm.notify_finish(&c);
         assert_eq!(free, HashSet::new());
         let a_deps = [b].into_iter().collect::<HashSet<_>>();
@@ -149,7 +163,7 @@ mod ut {
         let a = AbsPath::new(PathBuf::from("/a"));
         let b = AbsPath::new(PathBuf::from("/b"));
         let c = AbsPath::new(PathBuf::from("/c"));
-        dm.add_dependency(&a, &[b.clone(), c.clone()]);
+        assert!(dm.add_dependency(&a, &[b.clone(), c.clone()]));
         let free = dm.notify_finish(&b);
         assert_eq!(free, HashSet::new());
         let free = dm.notify_finish(&c);
@@ -163,9 +177,9 @@ mod ut {
         let b = AbsPath::new(PathBuf::from("/b"));
         let c = AbsPath::new(PathBuf::from("/c"));
         let d = AbsPath::new(PathBuf::from("/d"));
-        dm.add_dependency(&a, &[b.clone(), c.clone()]);
-        dm.add_dependency(&b, &[d.clone()]);
-        dm.add_dependency(&c, &[d.clone()]);
+        assert!(dm.add_dependency(&a, &[b.clone(), c.clone()]));
+        assert!(dm.add_dependency(&b, &[d.clone()]));
+        assert!(dm.add_dependency(&c, &[d.clone()]));
         let free = dm.notify_finish(&d);
         assert_eq!(free, [b.clone(), c.clone()].into_iter().collect());
         let free = dm.notify_finish(&c);
@@ -180,8 +194,8 @@ mod ut {
         let a = AbsPath::new(PathBuf::from("/a"));
         let b = AbsPath::new(PathBuf::from("/b"));
         let c = AbsPath::new(PathBuf::from("/c"));
-        dm.add_dependency(&a, &[b.clone(), c.clone()]);
-        dm.add_dependency(&b, &[a.clone()]);
+        assert!(dm.add_dependency(&a, &[b.clone(), c.clone()]));
+        assert!(dm.add_dependency(&b, &[a.clone()]));
         let free = dm.notify_finish(&c);
         assert_eq!(free, HashSet::new());
         let a_deps = [b.clone()].into_iter().collect::<HashSet<_>>();
@@ -192,5 +206,19 @@ mod ut {
                 .into_iter()
                 .collect::<HashMap<_, _>>()
         );
+    }
+
+    #[test]
+    fn test_do_not_add_done() {
+        let mut dm = DepManager::new();
+        let a = AbsPath::new(PathBuf::from("/a"));
+        let b = AbsPath::new(PathBuf::from("/b"));
+        let free = dm.notify_finish(&b);
+        assert_eq!(free, HashSet::new());
+        assert!(!dm.add_dependency(&a, &[b.clone()]));
+        assert!(!dm.add_dependency(&a, &[b.clone(), b.clone()]));
+        let free = dm.notify_finish(&b);
+        assert_eq!(free, HashSet::new());
+        assert_eq!(dm.take_remaining(), HashMap::new());
     }
 }

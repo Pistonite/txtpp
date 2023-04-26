@@ -14,7 +14,7 @@ mod config;
 pub use config::*;
 
 mod pp;
-use pp::{do_preprocess, PreprocessResult};
+use pp::{do_preprocess, PpResult};
 mod resolve_inputs;
 use resolve_inputs::resolve_inputs;
 mod scan_dir;
@@ -173,15 +173,19 @@ impl Txtpp {
                         e.change_context(TxtppError)
                     })?;
                     match preprocess_result {
-                        PreprocessResult::HasDeps(input, deps) => {
+                        PpResult::HasDeps(input, deps) => {
                             log::info!("file {input} has dependencies: {deps:?}");
-                            dep_mgr.add_dependency(&input, &deps);
-                            // schedule the dependencies
-                            for dep in deps {
-                                self.execute_file(dep, true);
+                            if dep_mgr.add_dependency(&input, &deps) {
+                                // schedule the dependencies
+                                for dep in deps {
+                                    self.execute_file(dep, true);
+                                }
+                            } else {
+                                // the dependencies are already done, shedule the file again
+                                self.execute_file(input, false);
                             }
                         }
-                        PreprocessResult::Ok(input) => {
+                        PpResult::Ok(input) => {
                             log::info!("file {input} done");
                             file_count += 1;
                             let files = dep_mgr.notify_finish(&input);
@@ -292,5 +296,5 @@ impl Drop for Txtpp {
 
 enum TaskResult {
     ScanDir(Result<Directory, PathError>),
-    Preprocess(Result<PreprocessResult, PpError>),
+    Preprocess(Result<PpResult, PpError>),
 }

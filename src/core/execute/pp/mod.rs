@@ -22,7 +22,7 @@ pub fn do_preprocess(
     input_file: &AbsPath,
     mode: Mode,
     is_first_pass: bool,
-) -> Result<PreprocessResult, PpError> {
+) -> Result<PpResult, PpError> {
     Pp::run(input_file, shell, mode, is_first_pass)
 }
 
@@ -43,7 +43,7 @@ impl<'a> Pp<'a> {
         shell: &'a Shell,
         mode: Mode,
         is_first_pass: bool,
-    ) -> Result<PreprocessResult, PpError> {
+    ) -> Result<PpResult, PpError> {
         let context = IOCtx::new(input_file, mode.clone())?;
         Self {
             shell,
@@ -69,7 +69,7 @@ impl<'a> Pp<'a> {
     /// mode: whether is in verification mode
     /// txtpp_file: the txtpp file to preprocess, as relative path to base
     ///
-    fn run_internal(mut self) -> Result<PreprocessResult, PpError> {
+    fn run_internal(mut self) -> Result<PpResult, PpError> {
         // read txtpp file line by line
         loop {
             let line = match self.context.next_line() {
@@ -101,6 +101,17 @@ impl<'a> Pp<'a> {
                             None
                         }
                     });
+                    let line = if let Some(line) = line {
+                        match Directive::detect_from(&line) {
+                            Some(d) => {
+                                self.cur_directive = Some(d);
+                                None
+                            }
+                            None => Some(line),
+                        }
+                    } else {
+                        line
+                    };
                     let line = if self.pp_mode.is_execute() {
                         line.map(|line| self.tag_state.inject_tags(&line, self.context.line_ending))
                     } else {
@@ -128,12 +139,12 @@ impl<'a> Pp<'a> {
         }
 
         if let PpMode::CollectDeps(deps) = self.pp_mode {
-            return Ok(PreprocessResult::HasDeps(self.input_file, deps));
+            return Ok(PpResult::HasDeps(self.input_file, deps));
         }
 
         self.context.done()?;
 
-        Ok(PreprocessResult::Ok(self.input_file))
+        Ok(PpResult::Ok(self.input_file))
     }
 
     /// Update the directive and line based on the current directive and the next line
@@ -384,7 +395,7 @@ impl PpMode {
 }
 
 #[derive(Debug)]
-pub enum PreprocessResult {
+pub enum PpResult {
     Ok(AbsPath),
     HasDeps(AbsPath, Vec<AbsPath>),
 }

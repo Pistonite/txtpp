@@ -1,0 +1,19 @@
+// In this example we will export a python script,
+// and use that to generate JS code from a csv
+function get_cities() {
+    return [
+        // TXTPP#temp gen_cities.g.py
+        // import csv
+        //
+        // with open('city.csv', 'r') as f:
+        //     reader = csv.reader(f)
+        //     next(reader) # skip header
+        //     for city, country in reader:
+        //         print(f'{{ city: "{city}", country: "{country}"}},')
+        /* --- generated code --- */
+        // TXTPP#run python gen_cities.g.py
+        /* --- generated code --- */
+    ];
+}
+// Note we used /*  */ to break the prefix pattern `// ` so that the directive can end
+// You can also use an empty line to make it simple.

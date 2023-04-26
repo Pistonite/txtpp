@@ -1,0 +1,20 @@
+// In this example we will export a python script,
+// and use that to generate JS code from a csv
+function get_cities() {
+    return [
+        /* --- generated code --- */
+        { city: "Tokyo", country: "Japan"},
+        { city: "Delhi", country: "India"},
+        { city: "Shanghai", country: "China"},
+        { city: "Sao Paulo", country: "Brazil"},
+        { city: "Mumbai", country: "India"},
+        { city: "Mexico City", country: "Mexico"},
+        { city: "Beijing", country: "China"},
+        { city: "Osaka", country: "Japan"},
+        { city: "Cairo", country: "Egypt"},
+        { city: "New York", country: "United States"},
+        /* --- generated code --- */
+    ];
+}
+// Note we used /*  */ to break the prefix pattern `// ` so that the directive can end
+// You can also use an empty line to make it simple.

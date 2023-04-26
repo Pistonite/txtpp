@@ -1,0 +1,3 @@
+#include directives cannot include the same file
+TXTPP#include invalid
+It will still try to process it. The first line will be emitted, but not this line.

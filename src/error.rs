@@ -39,14 +39,15 @@ pub enum PpErrorKind {
 
 impl fmt::Display for PpError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let source = format!("at `{}`:{}", self.file, self.line);
         match self.kind {
-            PpErrorKind::OpenFile => write!(f, "Could not open file."),
-            PpErrorKind::ReadFile => write!(f, "Could not read file."),
-            PpErrorKind::WriteFile => write!(f, "Could not write file."),
-            PpErrorKind::DeleteFile => write!(f, "Could not remove file."),
-            PpErrorKind::VerifyOutput => write!(f, "Output file not verified."),
-            PpErrorKind::Directive => write!(f, "Error executing directive"),
-            PpErrorKind::Other => write!(f, "Internal error."),
+            PpErrorKind::OpenFile => write!(f, "Could not open file {source}"),
+            PpErrorKind::ReadFile => write!(f, "Could not read file {source}"),
+            PpErrorKind::WriteFile => write!(f, "Could not write file {source}"),
+            PpErrorKind::DeleteFile => write!(f, "Could not remove file {source}"),
+            PpErrorKind::VerifyOutput => write!(f, "Output file not verified {source}"),
+            PpErrorKind::Directive => write!(f, "Error executing directive {source}"),
+            PpErrorKind::Other => write!(f, "Internal error {source}"),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::error::PathError;
 use crate::fs::{AbsPath, Directory, TxtppPath};
-use error_stack::Result;
+use error_stack::{Report, Result};
 
 pub fn resolve_inputs(inputs: &[String], base_abs_path: &AbsPath) -> Result<Directory, PathError> {
     let mut directory = Directory::new();
@@ -16,6 +16,9 @@ pub fn resolve_inputs(inputs: &[String], base_abs_path: &AbsPath) -> Result<Dire
             if let Some(input_path) = input_path.get_txtpp_file() {
                 let abs_path = base_abs_path.share_base(input_path)?;
                 directory.files.push(abs_path);
+            } else {
+                return Err(Report::new(PathError::from(&input_path))
+                    .attach_printable("corresponding txtpp file not found."));
             }
         } else {
             // input is txtpp file. it must exist

@@ -120,7 +120,7 @@ Explanation:
       - the exact same string as the `{PREFIX1}` in the first line
       - the same string as the `{PREFIX1}` in the first line without trailing whitespaces, followed by new line (i.e. arg is empty)
     - `{ARG2}`, `{ARG3}` ...: Add more arguments to the argument list. Note that `{WHITESPACES}` and `{PREFIX2}` are not included in the argument. Unlike the first line, leading whitespaces are not trimmed, but trailing whitespaces are still trimmed.
-1. Ending: if a line does not match the format above, the directive ends. The ending line won't be part of the directive and will still be in the processed file.
+1. Ending: if a line does not match the format above, the directive ends. The ending line won't be part of this directive, but can be the start of the next directive.
 
 
 For example, you can write the directive like
@@ -134,10 +134,9 @@ The same example as a block comment
         /* TXTPP#run echo "
            hello world
            "
-
-           TXTPP# */
+          -TXTPP# */
 ```
-This will execute the command `echo "hello world"`. Note that because `run` supports multi-line, we used an empty line to end the first directive, and then used the empty directive to remove the end of the block comment.
+This will execute the command `echo "hello world"`. The `-` in the last line is needed to indicate that it's the start of a different directive.
 
 ## Output
 If the directive has output like `include` and `run`, it will be processed as follows:
@@ -197,10 +196,10 @@ For example, you can write something like:
 ```javascript
 function hello() {
   // GENERATED CODE
-  /* TXTPP#run
-       ./codegen
+  /* -TXTPP#run
+      ./codegen
 
-     TXTPP# */
+     -TXTPP# */
 }
 ```
 
@@ -208,11 +207,11 @@ If you have to put the end of the block comment in a new line, make sure to form
 ```javascript
 function hello() {
   // GENERATED CODE
-  /* TXTPP#run
-       ./codegen
+  /* -TXTPP#run
+      ./codegen
 
-     TXTPP#
-     */
+     -TXTPP#
+     -*/
 }
 ```
 In both scenarios, the entire block comment `/**/` will be replaced with the output from running `./codegen`
