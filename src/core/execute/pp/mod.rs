@@ -93,16 +93,14 @@ impl<'a> Pp<'a> {
                     Some(line)
                 }
                 IterDirectiveResult::Execute(d, line) => {
-                    let directive_output = self
-                        .execute_directive(d)?
-                        .and_then(|s| {
-                            let s = s.replace_line_ending(self.context.line_ending, true);
-                            if self.tag_state.try_store(&s).is_err() {
-                                Some(s)
-                            } else {
-                                None
-                            }
-                        });
+                    let directive_output = self.execute_directive(d)?.and_then(|s| {
+                        let s = s.replace_line_ending(self.context.line_ending, true);
+                        if self.tag_state.try_store(&s).is_err() {
+                            Some(s)
+                        } else {
+                            None
+                        }
+                    });
                     let line = if self.pp_mode.is_execute() {
                         line.map(|line| self.tag_state.inject_tags(&line, self.context.line_ending))
                     } else {
@@ -189,10 +187,7 @@ impl<'a> Pp<'a> {
     }
 
     /// Execute the directive and return the output from the directive
-    fn execute_directive(
-        &mut self,
-        d: Directive,
-    ) -> Result<Option<String>, PpError> {
+    fn execute_directive(&mut self, d: Directive) -> Result<Option<String>, PpError> {
         if let Mode::Clean = self.mode {
             self.execute_in_clean_mode(d)?;
             return Ok(None);
@@ -238,24 +233,22 @@ impl<'a> Pp<'a> {
                 //     }
                 // }
                 let include_file = self
-                        .context
-                        .work_dir
-                        .try_resolve(&arg, false)
-                        .map_err(|e| {
-                            e.change_context(self.context.make_error(PpErrorKind::Directive))
-                                .attach_printable(format!(
-                                    "could not open include file: `{arg}`"
-                                ))
-                        })?;
-                    let output = std::fs::read_to_string(&include_file)
-                        .into_report()
-                        .map_err(|e| {
-                            e.change_context(self.context.make_error(PpErrorKind::Directive))
-                                .attach_printable(format!(
-                                    "could not read include file: `{include_file}`"
-                                ))
-                        })?;
-                    Some(output)
+                    .context
+                    .work_dir
+                    .try_resolve(&arg, false)
+                    .map_err(|e| {
+                        e.change_context(self.context.make_error(PpErrorKind::Directive))
+                            .attach_printable(format!("could not open include file: `{arg}`"))
+                    })?;
+                let output = std::fs::read_to_string(&include_file)
+                    .into_report()
+                    .map_err(|e| {
+                        e.change_context(self.context.make_error(PpErrorKind::Directive))
+                            .attach_printable(format!(
+                                "could not read include file: `{include_file}`"
+                            ))
+                    })?;
+                Some(output)
             }
             DirectiveType::Temp => {
                 self.execute_directive_temp(d.args, false)?;
@@ -316,10 +309,10 @@ impl<'a> Pp<'a> {
                     }
                     PpMode::FirstPassExecute => {
                         self.pp_mode = PpMode::CollectDeps(vec![p_abs]);
-                    },
+                    }
                     _ => unreachable!(),
                 }
-                return Ok(None)
+                return Ok(None);
             }
         }
         Ok(Some(d))

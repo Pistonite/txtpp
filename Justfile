@@ -1,6 +1,8 @@
 install:
     rustup update
-    echo "cargo fmt" > .git/hooks/pre-commit
+    echo "#!/bin/sh" > .git/hooks/pre-commit
+    echo "echo running cargo fmt" >> .git/hooks/pre-commit
+    echo "cargo fmt" >> .git/hooks/pre-commit
     chmod +x .git/hooks/pre-commit
 
 todo:
