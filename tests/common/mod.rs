@@ -42,6 +42,7 @@ impl ItEnv {
         config.num_threads = 1;
         config.verbosity = Verbosity::Quiet;
         config.base_dir = path.clone();
+        Self::init_shell(&mut config);
 
         Self {
             test_description,
@@ -49,6 +50,14 @@ impl ItEnv {
             config,
         }
     }
+
+    #[cfg(windows)]
+    fn init_shell(config: &mut Config) {
+        config.shell_cmd = "pwsh -c".to_string();
+    }
+
+    #[cfg(not(windows))]
+    fn init_shell(_config: &mut Config) {}
 
     #[inline]
     pub fn execute<F>(&mut self, f: F)
