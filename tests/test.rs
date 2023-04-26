@@ -21,6 +21,7 @@ fn test_include_simple_build_verify_clean() {
     env.assert_path_exists("foo.txt", false);
 }
 
+#[cfg(not(windows))]
 #[test]
 fn test_run_simple_build() {
     let mut env = ItEnv::new("test_run_simple_build", "examples/run");

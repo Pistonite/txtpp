@@ -1,4 +1,6 @@
 # txtpp
+![License Badge](https://img.shields.io/github/license/iTNTPiston/txtpp)
+
 A simple-to-use general purpose preprocessor for text files, written in rust.
 
 You can:
@@ -6,6 +8,8 @@ You can:
 - Execute a command in the middle of the current file and include the output
 
 You can use `txtpp` both as a command line tool, or as a library with the rust crate. `txtpp` is well tested with unit tests and integration tests.
+
+**Currently in Preview. Not all features are implemented and some examples may not work.**
 
 # Installation
 Install with `cargo`

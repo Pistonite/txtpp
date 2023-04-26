@@ -2,8 +2,13 @@
 name = "txtpp"
 version = "0.1.0"
 edition = "2021"
+description = "A simple-to-use general purpose preprocessor for text files."
+repository = "https://github.com/iTNTPiston/txtpp"
+license = "GPL-3.0"
+authors = ["iTNTPiston <terrabyte100k@gmail.com>"]
+keywords = ["preprocessor", "tool", "template", "macro", "include"]
+categories = ["development-tools::build-utils", "template-engine"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 which = "^4.4.0"
