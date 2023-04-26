@@ -1,5 +1,9 @@
 # txtpp
+![Build Badge](https://img.shields.io/github/actions/workflow/status/iTNTPiston/txtpp/rust)
+![Version Badge](https://img.shields.io/crates/v/txtpp)
+![Docs Badge](https://img.shields.io/docsrs/txtpp)
 ![License Badge](https://img.shields.io/github/license/iTNTPiston/txtpp)
+![Issue Badge](https://img.shields.io/github/issues/iTNTPiston/txtpp)
 
 A simple-to-use general purpose preprocessor for text files, written in rust.
 
