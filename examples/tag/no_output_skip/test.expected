@@ -1,0 +1,7 @@
+The following directive has no output, so it should not be stored in tag
+Store the include
+print it
+-world.hello
+
+wow
+-

@@ -1,0 +1,7 @@
+TXTPP#tag TAG
+The following directive has no output, so it should not be stored in tag
+-TXTPP#temp temp
+Store the include
+TXTPP#include hello.world
+print it
+-TAG-

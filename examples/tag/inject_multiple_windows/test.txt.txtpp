@@ -1,0 +1,8 @@
+TXTPP#tag TAG1
+-TXTPP#run Write-Host "hello tag1" -NoNewline
+TXTPP#tag TAG2
+-TXTPP#run Write-Host  "hello tag2" -NoNewline
+TXTPP#tag G2TA
+-TXTPP#run Write-Host  "hello tag3" -NoNewline
+>>>TAG2TAG1<<<
+>>>G2TA<<<

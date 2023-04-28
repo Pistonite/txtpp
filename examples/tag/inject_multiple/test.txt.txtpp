@@ -1,0 +1,5 @@
+TXTPP#tag TAG1
+-TXTPP#run echo -n "hello tag1"
+TXTPP#tag TAG2
+-TXTPP#run echo -n "hello tag2"
+>>>TAG2TAG1<<<

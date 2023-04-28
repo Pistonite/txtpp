@@ -3,6 +3,9 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use error_stack::{IntoReport, Result};
+use crate::error::PathError;
+use crate::fs::normalize_path;
 
 pub const CRLF: &str = "\r\n";
 pub const LF: &str = "\n";
@@ -12,27 +15,27 @@ pub const OS_LINE_ENDING: &str = CRLF;
 pub const OS_LINE_ENDING: &str = LF;
 
 pub trait GetLineEnding {
-    fn get_line_ending(&self) -> &'static str;
+    fn get_line_ending(&self) -> Result<&'static str, PathError>;
 }
 
 impl<P> GetLineEnding for P
 where
     P: AsRef<Path>,
 {
-    fn get_line_ending(&self) -> &'static str {
+    fn get_line_ending(&self) -> Result<&'static str, PathError> {
         let mut buf = vec![];
-        File::open(self)
-            .map(BufReader::new)
-            .and_then(|mut r| {
-                r.read_until(b'\n', &mut buf)?;
-                Ok(get_line_ending_from_buf(&buf))
-            })
-            .unwrap_or(OS_LINE_ENDING)
+        let len = File::open(self)
+            .map(BufReader::new).and_then(|mut r|{
+                r.read_until(b'\n', &mut buf)
+            }).into_report().map_err(|e|{
+                e.change_context(PathError::from(self)).attach_printable(format!("Failed to get line ending for file: {}", normalize_path(&self.as_ref().display().to_string())))
+            })?;
+        Ok(get_line_ending_from_buf(&buf, len))
     }
 }
 
-fn get_line_ending_from_buf(buf: &[u8]) -> &'static str {
-    match buf.len() {
+fn get_line_ending_from_buf(buf: &[u8], len: usize) -> &'static str {
+    match len {
         0 => OS_LINE_ENDING,
         1 => {
             if buf[0] == b'\n' {
@@ -42,8 +45,8 @@ fn get_line_ending_from_buf(buf: &[u8]) -> &'static str {
             }
         }
         _ => {
-            if buf[buf.len() - 1] == b'\n' {
-                if buf[buf.len() - 2] == b'\r' {
+            if buf[len - 1] == b'\n' {
+                if buf[len - 2] == b'\r' {
                     CRLF
                 } else {
                     LF
@@ -59,45 +62,45 @@ fn get_line_ending_from_buf(buf: &[u8]) -> &'static str {
 mod ut {
     use super::*;
 
+    macro_rules! test_line_ending {
+        ($expected:expr, $buf:literal) => {
+            let buf = $buf.to_string();
+            assert_eq!($expected, get_line_ending_from_buf(buf.as_bytes(), buf.len()));
+        };
+    }
+
     #[test]
     fn test_empty() {
-        let buf = vec![];
-        assert_eq!(OS_LINE_ENDING, get_line_ending_from_buf(&buf));
+        test_line_ending!(OS_LINE_ENDING, "");
     }
 
     #[test]
     fn test_text_nonewline() {
-        let buf = "something".to_string();
-        assert_eq!(OS_LINE_ENDING, get_line_ending_from_buf(buf.as_bytes()));
+        test_line_ending!(OS_LINE_ENDING, "something");
     }
 
     #[test]
     fn test_text_lf() {
-        let buf = "something\n".to_string();
-        assert_eq!(LF, get_line_ending_from_buf(buf.as_bytes()));
+        test_line_ending!(LF, "something\n");
     }
 
     #[test]
     fn test_lf() {
-        let buf = "\n".to_string();
-        assert_eq!(LF, get_line_ending_from_buf(buf.as_bytes()));
+        test_line_ending!(LF, "\n");
     }
 
     #[test]
     fn test_text_crlf() {
-        let buf = "something\r\n".to_string();
-        assert_eq!(CRLF, get_line_ending_from_buf(buf.as_bytes()));
+        test_line_ending!(CRLF, "something\r\n");
     }
 
     #[test]
     fn test_crlf() {
-        let buf = "\r\n".to_string();
-        assert_eq!(CRLF, get_line_ending_from_buf(buf.as_bytes()));
+        test_line_ending!(CRLF, "\r\n");
     }
 
     #[test]
     fn test_cr() {
-        let buf = "\r".to_string();
-        assert_eq!(OS_LINE_ENDING, get_line_ending_from_buf(buf.as_bytes()));
+        test_line_ending!(OS_LINE_ENDING, "\r");
     }
 }

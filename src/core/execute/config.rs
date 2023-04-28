@@ -67,11 +67,23 @@ pub enum Verbosity {
 /// The mode config options
 #[derive(Debug, PartialEq, Clone)]
 pub enum Mode {
-    /// build output files
+    /// Build output files
+    ///
+    /// This is the default mode if no subcommand is specified from the command line.
+    /// For every `.txtpp` file found from the inputs, it will build the output file and any temporary file
+    /// the `.txtpp` may produce. Dependencies in `include` directives will be built automatically as well, even if
+    /// not specified in the inputs.
     Build,
     /// Delete output files
+    ///
+    /// Remove the output file and any temporary file the `.txtpp` input files may produce.
+    /// Dependency is not automatically cleaned if they are not specified in the inputs.
     Clean,
-    /// Verify output files are the same as fresh output
+    /// Verify output files are up to date
+    ///
+    /// In this mode, the output files will be compared against output from a fresh run.
+    /// The run will fail if any output is different from the fresh output. Note that the temporary files
+    /// are not compared, and the temporary files may be rebuilt in the process in order to generate the fresh output.
     Verify,
 }
 

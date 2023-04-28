@@ -54,6 +54,8 @@ impl fmt::Display for PpError {
 
 impl error::Error for PpError {}
 
+use crate::fs::normalize_path;
+
 /// Error related to paths
 #[derive(Debug)]
 pub struct PathError {
@@ -73,28 +75,9 @@ where
 }
 
 impl fmt::Display for PathError {
-    #[cfg(windows)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // on windows, we try to remove the `\\?\` prefix returned
-        // by `std::path::Path::display` to make the error message
-        // more readable
-        let path = if self.path.starts_with(r"\\?\") {
-            &self.path[4..]
-        } else {
-            &self.path
-        };
-        Self::fmt_internal(path, f)
-    }
-    #[cfg(not(windows))]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Self::fmt_internal(&self.path, f)
+        write!(f, "Error in path `{}`", normalize_path(&self.path))
     }
 }
 
 impl error::Error for PathError {}
-
-impl PathError {
-    fn fmt_internal(p: &str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error in path `{p}`")
-    }
-}

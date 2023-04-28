@@ -79,3 +79,19 @@ impl TxtppPath for PathBuf {
         Ok(p)
     }
 }
+
+#[cfg(windows)]
+#[inline]
+pub fn normalize_path(p: &str) -> &str {
+    if let Some(stripped) = p.strip_prefix(r"\\?\") {
+        stripped
+    } else {
+        p
+    }
+}
+
+#[cfg(not(windows))]
+#[inline]
+pub fn normalize_path(p: &str) -> &str {
+    p
+}

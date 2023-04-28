@@ -1,0 +1,28 @@
+Include 3 files here, which each depend on 1-2 files
+
+===start b1===
+hello!
+===end b1===
+===start b2===
+hello!
+===end b2===
+===start c===
+run some command first
+ processing c.txtpp
+
+include a file
+    I am c1
+===end c===
+because include does not support multi-line, we can write the includes in consecutive lines
+   ===start b1===
+   hello!
+   ===end b1===
+   ===start b2===
+   hello!
+   ===end b2===
+ ===start d===
+        D has some indentation
+        which should be kept
+ ===end d===
+
+we can also include the same file multiple times (b is included twice)

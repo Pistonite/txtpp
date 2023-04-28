@@ -1,0 +1,10 @@
+===start c===
+run some command first
+ /* -TXTPP#run echo 
+     "processing $env:TXTPP_FILE"
+
+    -TXTPP# */
+include a file
+    /* -TXTPP#include c1
+    -TXTPP# */
+===end c===

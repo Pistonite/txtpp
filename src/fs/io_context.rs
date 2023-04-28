@@ -1,5 +1,5 @@
 use crate::error::{PpError, PpErrorKind};
-use crate::fs::{AbsPath, GetLineEnding, TxtppPath};
+use crate::fs::{AbsPath, GetLineEnding, TxtppPath, normalize_path};
 use crate::Mode;
 use error_stack::{IntoReport, Report, Result};
 use std::fs::File;
@@ -24,7 +24,14 @@ impl IOCtx {
     pub fn new(input_file: &AbsPath, mode: Mode) -> Result<Self, PpError> {
         let input_path = input_file.to_string();
 
-        let line_ending = input_file.get_line_ending();
+        let line_ending = input_file.get_line_ending().map_err(|e|{
+            e.change_context(Self::make_error_with_kind(
+                input_path.clone(),
+                PpErrorKind::OpenFile,
+            ))
+            .attach_printable(format!("could not read line ending for input file: `{input_path}`"))
+        })?;
+
         let r = File::open(input_file)
             .map(BufReader::new)
             .into_report()
@@ -97,8 +104,11 @@ impl IOCtx {
             }
             CtxOut::Clean { .. } => Ok(()), // do nothing
             CtxOut::Verify { path, out, rem } => {
+                log::debug!("verifying content: {output:?}");
+                // len is the length in bytes
                 let len = output.len() as u64;
                 if *rem < len {
+                    log::debug!("not enough content to verify: need {len}, remaining {rem}");
                     return Err(make_verify_report!(self, path));
                 }
                 let mut buf = vec![0; output.len()];
@@ -107,6 +117,8 @@ impl IOCtx {
                         .attach_printable("cannot read from output file.")
                 })?;
                 if buf != output.as_bytes() {
+                    let string = String::from_utf8_lossy(&buf);
+                    log::debug!("content different, actual: {string:?}");
                     return Err(make_verify_report!(self, path));
                 }
                 *rem -= len;
@@ -198,7 +210,7 @@ macro_rules! make_verify_report {
     ($self:ident, $path:expr) => {
         Report::new(make_error!($self, PpErrorKind::VerifyOutput)).attach_printable(format!(
             "`{}` is different from fresh output.",
-            $path.display()
+            normalize_path(&$path.display().to_string())
         ))
     };
 }
@@ -235,7 +247,7 @@ impl CtxOut {
                         ))
                         .attach_printable(format!(
                             "could not open output file: `{}`",
-                            output_path.as_ref().display()
+                            normalize_path(&output_path.as_ref().display().to_string())
                         ))
                     })
                     .map(BufWriter::new)?;
@@ -252,7 +264,7 @@ impl CtxOut {
                             input_path.to_string(),
                             PpErrorKind::DeleteFile,
                         ))
-                        .attach_printable(format!("could not remove file: `{}`", p.display()))
+                        .attach_printable(format!("could not remove file: `{}`", normalize_path(&p.display().to_string())))
                     })?;
                 }
                 Ok(Self::Clean)
@@ -264,7 +276,7 @@ impl CtxOut {
                         input_path.to_string(),
                         PpErrorKind::VerifyOutput,
                     ))
-                    .attach_printable(format!("file `{}` does not exist.", p.display())));
+                    .attach_printable(format!("file `{}` does not exist.", normalize_path(&p.display().to_string()))));
                 }
                 let len = std::fs::metadata(p)
                     .into_report()
@@ -279,6 +291,7 @@ impl CtxOut {
                         ))
                     })?
                     .len();
+                log::debug!("found output to verify, file size: {}", len);
                 let out = File::open(output_path)
                     .into_report()
                     .map_err(|e| {
@@ -286,7 +299,7 @@ impl CtxOut {
                             input_path.to_string(),
                             PpErrorKind::OpenFile,
                         ))
-                        .attach_printable(format!("could not open output file: `{}`", p.display()))
+                        .attach_printable(format!("could not open output file: `{}`", normalize_path(&p.display().to_string())))
                     })
                     .map(BufReader::new)?;
                 Ok(Self::Verify {

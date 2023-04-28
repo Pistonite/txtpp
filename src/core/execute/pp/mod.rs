@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::path::PathBuf;
 
-use crate::core::{Mode, ReplaceLineEnding, TagState};
+use crate::core::{Mode, TagState};
 use crate::error::{PpError, PpErrorKind};
 use crate::fs::{AbsPath, IOCtx, Shell, TxtppPath};
 use error_stack::{IntoReport, Report, Result};
@@ -10,13 +10,6 @@ mod directive;
 pub use directive::*;
 
 /// Preprocess the txtpp file
-///
-/// # Arguments
-/// shell: The shell to use
-/// base: The directory of the current txtpp process as absolute path
-/// mode: whether is in verification mode
-/// txtpp_file: the txtpp file to preprocess, as relative path to base
-///
 pub fn do_preprocess(
     shell: &Shell,
     input_file: &AbsPath,
@@ -61,14 +54,6 @@ impl<'a> Pp<'a> {
         .run_internal()
     }
 
-    /// Preprocess the txtpp file
-    ///
-    /// # Arguments
-    /// shell: The shell to use
-    /// base: The directory of the current txtpp process as absolute path
-    /// mode: whether is in verification mode
-    /// txtpp_file: the txtpp file to preprocess, as relative path to base
-    ///
     fn run_internal(mut self) -> Result<PpResult, PpError> {
         // read txtpp file line by line
         loop {
@@ -77,7 +62,10 @@ impl<'a> Pp<'a> {
                 None => None,
             };
 
-            let to_write = match self.iterate_directive(line)? {
+            let to_write = match self
+                .iterate_directive(line)
+                .ignore_err_if_cleaning(&self.mode, || IterDirectiveResult::None("".to_string()))?
+            {
                 IterDirectiveResult::Break => break,
                 IterDirectiveResult::LineTaken => {
                     // Don't write the line
@@ -93,14 +81,22 @@ impl<'a> Pp<'a> {
                     Some(line)
                 }
                 IterDirectiveResult::Execute(d, line) => {
-                    let directive_output = self.execute_directive(d)?.and_then(|s| {
-                        let s = s.replace_line_ending(self.context.line_ending, true);
-                        if self.tag_state.try_store(&s).is_err() {
-                            Some(s)
+                    let whitespaces = d.whitespaces.clone();
+                    let directive_output = if let Some(raw_output) = self.execute_directive(d)? {
+                        log::debug!("directive output: {raw_output:?}");
+                        if self.tag_state.try_store(&raw_output).is_err() {
+                            Some(self.format_directive_output(
+                                &whitespaces,
+                                raw_output.lines(),
+                                true,
+                            )?)
                         } else {
                             None
                         }
-                    });
+                    } else {
+                        None
+                    };
+
                     let line = if let Some(line) = line {
                         match Directive::detect_from(&line) {
                             Some(d) => {
@@ -112,21 +108,21 @@ impl<'a> Pp<'a> {
                     } else {
                         line
                     };
+
                     let line = if self.pp_mode.is_execute() {
                         line.map(|line| self.tag_state.inject_tags(&line, self.context.line_ending))
                     } else {
                         line
                     };
-                    let output = match (line, directive_output) {
+
+                    match (line, directive_output) {
                         (Some(line), Some(directive_output)) => {
                             Some(format!("{}{}", directive_output, line))
                         }
                         (Some(line), None) => Some(line),
                         (None, Some(directive_output)) => Some(directive_output),
                         (None, None) => None,
-                    };
-
-                    output
+                    }
                 }
             };
 
@@ -135,7 +131,6 @@ impl<'a> Pp<'a> {
                     self.context.write_output(&x)?;
                 }
             }
-            //self.cur_directive = next_directive;
         }
 
         if let PpMode::CollectDeps(deps) = self.pp_mode {
@@ -200,7 +195,8 @@ impl<'a> Pp<'a> {
     /// Execute the directive and return the output from the directive
     fn execute_directive(&mut self, d: Directive) -> Result<Option<String>, PpError> {
         if let Mode::Clean = self.mode {
-            self.execute_in_clean_mode(d)?;
+            // Ignore error if in clean mode
+            let _ = self.execute_in_clean_mode(d);
             return Ok(None);
         }
         let d = match self.execute_in_collect_deps_mode(d)? {
@@ -226,23 +222,6 @@ impl<'a> Pp<'a> {
             }
             DirectiveType::Include => {
                 let arg = d.args.into_iter().next().unwrap_or_default();
-                //let include_path = PathBuf::from(&arg);
-                //let include_path = self.context.work_dir.as_path().join(include_path);
-                // See if we need to store the dependency and come back later
-                // if is_first_pass {
-                //     if let Some(x) = include_path.get_txtpp_file() {
-                //         log::debug!("found dependency: {}", x.display());
-                //         *executing = false;
-                //         let p_abs = self.context.work_dir.share_base(x).map_err(|e| {
-                //             e.change_context(self.context.make_error(PpErrorKind::Directive))
-                //                 .attach_printable(format!(
-                //                     "could not resolve include file: `{}`",
-                //                     include_path.display()
-                //                 ))
-                //         })?;
-                //         deps.push(p_abs);
-                //     }
-                // }
                 let include_file = self
                     .context
                     .work_dir
@@ -259,6 +238,7 @@ impl<'a> Pp<'a> {
                                 "could not read include file: `{include_file}`"
                             ))
                     })?;
+                log::debug!("include file content: {output:?}");
                 Some(output)
             }
             DirectiveType::Temp => {
@@ -276,13 +256,7 @@ impl<'a> Pp<'a> {
             }
             DirectiveType::Write => Some(d.args.into_iter().skip(1).collect::<Vec<_>>().join("\n")),
         };
-        if let Some(output) = raw_output {
-            Ok(Some(
-                self.format_directive_output(&d.whitespaces, output.lines())?,
-            ))
-        } else {
-            Ok(None)
-        }
+        Ok(raw_output)
     }
 
     /// Execute the directive in clean mode
@@ -300,7 +274,7 @@ impl<'a> Pp<'a> {
             return Ok(Some(d));
         }
         if let DirectiveType::Include = d.directive_type {
-            let arg = d.args.iter().next().cloned().unwrap_or_default();
+            let arg = d.args.first().cloned().unwrap_or_default();
             let include_path = PathBuf::from(&arg);
             // We use join instead of share_base because the dependency might not exist
             let include_path = self.context.work_dir.as_path().join(include_path);
@@ -340,7 +314,10 @@ impl<'a> Pp<'a> {
         if is_clean {
             return self.context.write_temp_file(export_file, "");
         }
-        let contents = self.format_directive_output("", args.iter().skip(1))?;
+        // We force trailing newline if the file is not empty
+        let has_trailing_newline = args.len() > 1;
+        let contents =
+            self.format_directive_output("", args.iter().skip(1), has_trailing_newline)?;
         self.context.write_temp_file(export_file, &contents)
     }
 
@@ -348,22 +325,46 @@ impl<'a> Pp<'a> {
         &mut self,
         whitespaces: &str,
         raw_output: impl Iterator<Item = impl AsRef<str>>,
+        has_trailing_newline: bool,
     ) -> Result<String, PpError> {
         let mut output = String::new();
-        for line in raw_output {
-            write!(
-                output,
-                "{whitespaces}{line}{line_ending}",
-                line = line.as_ref(),
-                line_ending = self.context.line_ending
-            )
-            .into_report()
-            .map_err(|e| {
-                e.change_context(self.context.make_error(PpErrorKind::Directive))
-                    .attach_printable("could not format output")
-            })?;
+        for (i, line) in raw_output.enumerate() {
+            if i > 0 {
+                output.push_str(self.context.line_ending);
+            }
+            write!(output, "{whitespaces}{line}", line = line.as_ref())
+                .into_report()
+                .map_err(|e| {
+                    e.change_context(self.context.make_error(PpErrorKind::Directive))
+                        .attach_printable("could not format output")
+                })?;
+        }
+        if has_trailing_newline {
+            output.push_str(self.context.line_ending);
         }
         Ok(output)
+    }
+}
+
+trait IgnoreIfCleaning {
+    type Output;
+    fn ignore_err_if_cleaning<F>(self, mode: &Mode, f: F) -> Result<Self::Output, PpError>
+    where
+        Self: Sized,
+        F: FnOnce() -> Self::Output;
+}
+
+impl<T> IgnoreIfCleaning for Result<T, PpError> {
+    type Output = T;
+    fn ignore_err_if_cleaning<F>(self, mode: &Mode, f: F) -> Result<T, PpError>
+    where
+        F: FnOnce() -> Self::Output,
+    {
+        if self.is_err() && matches!(mode, Mode::Clean) {
+            Ok(f())
+        } else {
+            self
+        }
     }
 }
 
@@ -394,8 +395,11 @@ impl PpMode {
     }
 }
 
+/// Processing result
 #[derive(Debug)]
 pub enum PpResult {
+    /// File was processed successfully
     Ok(AbsPath),
+    /// Dependency is found
     HasDeps(AbsPath, Vec<AbsPath>),
 }

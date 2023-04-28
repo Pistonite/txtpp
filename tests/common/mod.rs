@@ -1,14 +1,10 @@
 //! Common utils for integration tests
-//!
-//!
 
 use copy_dir::copy_dir;
 use error_stack::Result;
 use murmur3::murmur3_32;
-use std::{
-    io::BufReader,
-    path::{Path, PathBuf},
-};
+use std::io::BufReader;
+use std::path::{Path, PathBuf};
 use txtpp::{error::TxtppError, *};
 
 pub struct ItEnv {
@@ -42,7 +38,6 @@ impl ItEnv {
         config.num_threads = 1;
         config.verbosity = Verbosity::Quiet;
         config.base_dir = path.clone();
-        Self::init_shell(&mut config);
 
         Self {
             test_description,
@@ -50,14 +45,6 @@ impl ItEnv {
             config,
         }
     }
-
-    #[cfg(windows)]
-    fn init_shell(config: &mut Config) {
-        config.shell_cmd = "pwsh -c".to_string();
-    }
-
-    #[cfg(not(windows))]
-    fn init_shell(_config: &mut Config) {}
 
     #[inline]
     pub fn execute<F>(&mut self, f: F)
@@ -108,22 +95,34 @@ impl ItEnv {
             self.test_dir.display()
         );
         let actual = std::fs::read_to_string(actual_path).unwrap();
-        let expected = std::fs::read_to_string(expected_path).unwrap();
+        let expected = std::fs::read_to_string(&expected_path).unwrap();
         assert_eq!(
             actual,
             expected,
-            "file comparions failed in test `{}` ({})",
+            "file comparions failed in test `{}` ({}) for `{}`",
             self.test_description,
-            self.test_dir.display()
+            self.test_dir.display(),
+            expected_path.display()
         );
     }
 
     #[inline]
     pub fn assert_path_exists(&self, path_name: &str, exists: bool) {
+        let p = self.test_dir.join(path_name);
+        // The file may not be immediately deleted, so we wait a bit if asserting false
+        // (can try turning this on if tests fail)
+        // if !exists {
+        //     for _ in 0..10 {
+        //         if !p.exists() {
+        //             break;
+        //         }
+        //         thread::sleep(Duration::from_millis(500));
+        //     }
+        // }
         assert_eq!(
+            p.exists(),
             exists,
-            self.test_dir.join(path_name).exists(),
-            "file existence test failed in test `{}` ({})",
+            "file existence test failed in test `{}` ({}) for `{path_name}`",
             self.test_description,
             self.test_dir.display()
         );

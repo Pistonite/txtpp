@@ -1,0 +1,7 @@
+this file as no directive so the output should be exactly the same
+        $this->assertEquals($expected, $actual);
+    }
+
+    public function testGetOutputWithDirective()
+    {
+        $expected = <<<EOT

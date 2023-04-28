@@ -170,7 +170,10 @@ Can have more than one line. The arguments are joined with a single space in bet
 #### BEHAVIOR
 - The `COMMAND` will be executed as a sub-process.
 - Default shell selection:
-  - Windows: `powershell -c COMMAND` or `cmd /C COMMAND` if `powershell` is not available
+  - Windows: the following is tried in order:
+    1. PowerShell 7 - `pwsh -NonInteractive -NoProfile -Command COMMAND`
+    2. PowerShell 5 (Windows PowerShell) - `powershell -NonInteractive -NoProfile -Command COMMAND`
+    3. Command Prompt - `cmd /C COMMAND`
   - Other OS: `sh -c COMMAND`
   - You can override this with a [command line argument]()
 - The working directory of the sub-process will be the directory of the current file.
@@ -317,23 +320,3 @@ If the input file does not have a line ending, the output file will have the sam
 The full API doc is available on [docs.rs](https://docs.rs/txtpp)
 
 # Command Line Interface (CLI)
-The binary `txtpp` is used for preprocessing the files. It takes 1 or more files or directories as input, and preprocesses all the `.txtpp` files in those directories.
-
-The general usage is:
-```
-txtpp [OPTIONS] [FILES...]
-```
-Options (will be preprocessed with txtpp, hehe)
-
--r: recursive. if a directory is given, it will recursively preprocess all the files in that directory. If not given, only the files in the given directory will be processed and subdirecotires will be ignored
-
--q: quiet. if given, the tool will not print anything
--v: verbose. the opposite of quiet. if given, the tool will print more information
-
--j: number of concurrent tasks. if given, files will be processsed on multiple threads. Only faster if you have a lot of files to process, since a file will be processed twice if a dependency is detected
-
--s: shell. The command given will be split by spaces. if given, the shell to use for `run` directive. If not given, it will use `powershell -c` on windows (or `cmd /C` if not `powershell` is not available) and `sh -c` otherwise. 
-
---clean: delete `FOO` for each `FOO.txtpp` file if present.
-
---verify: preprocess the files but check if the output is the same instead of writing the output. This is useful for verifying that the files are up to date in a CI.

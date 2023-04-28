@@ -47,7 +47,9 @@ impl Display for Shell {
 impl Shell {
     #[cfg(windows)]
     fn default() -> Result<Self, ShellError> {
-        Self::new("powershell -c").or_else(|_| Self::new("cmd /C"))
+        Self::new("pwsh -NonInteractive -NoProfile -Command")
+            .or_else(|_| Self::new("powershell -NonInteractive -NoProfile -Command"))
+            .or_else(|_| Self::new("cmd /C"))
     }
     #[cfg(not(windows))]
     fn default() -> Result<Self, ShellError> {
@@ -69,13 +71,10 @@ impl Shell {
     }
 
     /// Run the shell with the given argument in the directory. Return the stdout.
-    pub fn run<P>(&self, command: &str, work_dir: &P, file: &str) -> Result<String, ShellError>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn run(&self, command: &str, work_dir: &AbsPath, file: &str) -> Result<String, ShellError> {
         log::debug!("shell command `{command}`");
         let result = Command::new(&self.exe)
-            .current_dir(work_dir)
+            .current_dir(work_dir.to_string())
             .args(&self.args)
             .arg(command)
             .env(TXTPP_FILE, file)

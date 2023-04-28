@@ -3,6 +3,12 @@ use common::*;
 
 use txtpp::*;
 
+testit!(examples__empty_test, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("empty1", "empty1.txtpp");
+    env.assert_file_eq("emptyempty", "emptyempty.txtpp");
+});
+
 testit!(examples__include, |env| {
     env.cfg().mode = Mode::Verify;
     // before output
@@ -26,7 +32,16 @@ testit!(examples__include, |env| {
     assert!(env.run().is_err());
 });
 
+#[cfg(not(windows))]
 testit!(examples__multiple_include, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("a", "a.expected");
+    env.assert_file_eq("b", "b.expected");
+    env.assert_file_eq("c", "c.expected");
+});
+
+#[cfg(windows)]
+testit!(examples__multiple_include_windows, |env| {
     assert!(env.run().is_ok());
     env.assert_file_eq("a", "a.expected");
     env.assert_file_eq("b", "b.expected");
@@ -55,11 +70,12 @@ testit!(examples__circular_dep_self, |env| {
 });
 
 testit!(examples__temp__write_clean, |env| {
+    env_logger::init();
+
     assert!(env.run().is_ok());
     // content should match
     env.assert_file_eq("exp", "exp.expected");
     env.assert_file_eq("temp.out", "temp.out.expected");
-    // but should when running clean
     env.cfg().mode = Mode::Clean;
     assert!(env.run().is_ok());
     env.assert_path_exists("temp.out", false);
@@ -87,4 +103,39 @@ testit!(examples__temp__python_script, |env| {
     assert!(env.run().is_ok());
     env.assert_path_exists("city.js", false);
     env.assert_path_exists("gen_cities.g.py", false);
+});
+
+testit!(examples__tag__inject_one, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("a", "a.expected");
+});
+
+#[cfg(linux)]
+testit!(examples__tag__inject_serial, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("b.html", "b.html.expected");
+});
+
+#[cfg(windows)]
+testit!(examples__tag__inject_serial_windows, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("b.html", "b.html.expected");
+});
+
+#[cfg(linux)]
+testit!(examples__tag__inject_multiple, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("test.txt", "test.txt.expected");
+});
+
+#[cfg(windows)]
+testit!(examples__tag__inject_multiple_windows, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("test.txt", "test.txt.expected");
+});
+
+testit!(examples__tag__no_output_skip, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("test", "test.expected");
+    env.assert_file_eq("temp", "temp.expected");
 });

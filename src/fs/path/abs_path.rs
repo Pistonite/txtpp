@@ -1,4 +1,5 @@
 use crate::error::PathError;
+use crate::fs::normalize_path;
 use derivative::Derivative;
 use error_stack::{IntoReport, Report, Result};
 use std::fs;
@@ -145,13 +146,15 @@ impl AbsPath {
 
 impl std::fmt::Display for AbsPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.b == self.p {
-            return write!(f, "{}", self.p.display());
-        }
-        match self.p.strip_prefix(&self.b) {
-            Ok(p) => write!(f, "{}", p.display()),
-            Err(_) => write!(f, "{}", self.p.display()),
-        }
+        let path = if self.b == self.p {
+            &self.p
+        } else {
+            match self.p.strip_prefix(&self.b) {
+                Ok(p) => p,
+                Err(_) => &self.p,
+            }
+        };
+        write!(f, "{}", normalize_path(&path.display().to_string()))
     }
 }
 
