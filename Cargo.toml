@@ -9,7 +9,8 @@ authors = ["iTNTPiston <terrabyte100k@gmail.com>"]
 keywords = ["preprocessor", "tool", "template", "macro", "include"]
 categories = ["development-tools::build-utils", "template-engine"]
 exclude = [
-    "examples/**/*",
+    "tests/examples/**/*",
+    "docs/*",
     ".github/**/*",
     "Justfile"
 ]
