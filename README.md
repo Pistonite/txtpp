@@ -13,12 +13,16 @@ You can:
 
 You can use `txtpp` both as a command line tool, or as a library with the rust crate. `txtpp` is well tested with unit tests and integration tests.
 
+The full API doc is available on [docs.rs](https://docs.rs/txtpp)
+
+
 **Currently in Preview. Not all features are implemented and some examples may not work.**
 
 # Installation
 Install with `cargo`
 ```
 cargo install txtpp
+txtpp --help  
 ```
 
 # Examples
@@ -70,18 +74,16 @@ More examples can be found in the [examples](examples) directory. These are also
 
 # Table of Contents
 - [Feature Summary](#feature-summary)
-- [Directives](#directives)
+- [Directive Overview](#directive-overview)
   - [Syntax](#syntax)
-  - [Output](#output)
-  - [Specification](#specification)
-    - [Include Directive](#include-directive)
-    - [Run Directive](#run-directive)
-    - [Temp Directive](#temp-directive)
-    - [Tag Directive](#tag-directive)
-    - [Write Directive](#write-directive)
+  - [Execution](#execution)
+- [Directive Specification](#directive-specification)
+  - [Include Directive](#include-directive)
+  - [Run Directive](#run-directive)
+  - [Temp Directive](#temp-directive)
+  - [Tag Directive](#tag-directive)
+  - [Write Directive](#write-directive)
 - [Output Specification](#output-specification)
-- [API Doc](https://docs.rs/txtpp)
-- [Command Line Interface](#command-line-interface)
 
 # Feature Summary
 `txtpp` provides directives that you can use in the `.txtpp` files.
@@ -93,7 +95,7 @@ The directives are all prefixed with `TXTPP#`:
 - `tag` - Hold the output of the next directive until a tag is seen, and replace the tag with the output.
 - `write` - Write content to the output file. Can be used for escaping directives. 
 
-# Directives
+# Directive Overview
 ## Syntax
 A directive is a single- or multi-line structure in the source file, that looks like this:
 ```
@@ -113,10 +115,10 @@ Explanation:
     - `{DIRECTIVE}`: can be one of the directives
     - ` `: (space) At least one space between the directive name and its input. This will be trimmed.
     - `{ARG1}`: argument as one string, until the end of the line. Both leading and trailing whitespaces (including the new line) will be trimmed.
-1. Subsequent lines: Some directives are allowed to have more than one lines (see [specification](#specification) for what they are)
+1. Subsequent lines: Some directives are allowed to have more than one lines (see the [specification](#directive-specification) for what they are)
     - `{WHITESPACES}`: this must match exactly with `{WHITESPACES}` in the first line
     - `{PREFIX2}`: this must be one of:
-      - the same number of space characters (i.e `' '`) as the `{PREFIX1}` in the first line
+      - the same number of space characters (i.e `' '`) as the length of `{PREFIX1}` in the first line
       - the exact same string as the `{PREFIX1}` in the first line
       - the same string as the `{PREFIX1}` in the first line without trailing whitespaces, followed by new line (i.e. arg is empty)
     - `{ARG2}`, `{ARG3}` ...: Add more arguments to the argument list. Note that `{WHITESPACES}` and `{PREFIX2}` are not included in the argument. Unlike the first line, leading whitespaces are not trimmed, but trailing whitespaces are still trimmed.
@@ -126,6 +128,7 @@ Explanation:
 For example, you can write the directive like
 ```
         // TXTPP#run echo "hello world"
+
 ```
 which will be treated like a comment in most languages to help with syntax highlighting.
 
@@ -136,19 +139,42 @@ The same example as a block comment
            "
           -TXTPP# */
 ```
-This will execute the command `echo "hello world"`. The `-` in the last line is needed to indicate that it's the start of a different directive.
+This will execute the command `echo "hello world"`. The `-` in the last line in front of `TXTPP#` is needed to indicate that it's the start of a different directive.
 
-## Output
-If the directive has output like `include` and `run`, it will be processed as follows:
+## Execution
+The directives are executed immediately after they are parsed. They may produce an output to be included in the output file and/or have side effects such as creating a temporary file.
+
+If the directive has output (like `include` and `run`), it will be formated as:
 - Every line in the output will be prepended with `{WHITESPACES}`, so that the indentation is consistent
-- The directive line (or all directive lines, if the directive is multi-line) will not be in the output
-  - The `tag` directive can be useful if you have to include the output inline with other text
+    Directive:
+    ```
+     1 |   // TXTPP#run echo 1; echo 2
+    ```
+    Output:
+    ```
+     1 |   1
+     2 |   2
+     3 |
+    ```
+- The line endings will be normalized to be [the same as the output file](#output-specification). Whether the last line has a trailing newline is persisted from the output of the command/included file. If the output from the directive doesn't have a newline character in the end, the next line from the source file will be on the same line as the last line of the directive output.
+    Directive:
+    ```
+     1 |   // TXTPP#run echo -n hello
+     2 |world
+     3 |
+    ```
+    Output:
+    ```
+     1 |   helloworld
+     2 |
+    ```
 
+Note that normally, you will not be able to connect a directive output to the previous line, since directives always start on its own line. However, you can use `tag` (see [below](#tag-directive)) to achieve this. If there is currently an active `tag` directive  that is listening for output, the output will be sent to the tag instead of the output file, without the indentation. and the directive will produce no output.
 
-## Specification
+# Directive Specification
 This section contains detailed specification of each directive.
 
-### Include Directive
+## Include Directive
 #### USAGE
 This directive is used include the content of another file into the current file.
 #### ARGUMENTS
@@ -156,13 +182,12 @@ Single-line only. The argument is `FILE_PATH`
 #### BEHAVIOR
 - If `FILE_PATH` is an absolute path, it will be used as is. Otherwise, it should be relative to the (directory of) the current file.
 - If `FILE_PATH` does not end in `.txtpp`, and `FILE_PATH.txtpp` exists, `FILE_PATH.txtpp` will be preprocessed first to produce `FILE_PATH`, and the result will be used as the output. Note that you would still include `FILE_PATH`, not `FILE_PATH.txtpp`.
-- If there is an error reading or preprocessing `FILE_PATH`, preprocessing will be aborted.
 #### EXAMPLE
 ```
 TXTPP#include foo.txt
 ```
 
-### Run Directive
+## Run Directive
 #### USAGE
 This directive is used to run a command and include the output of the command into the current file.
 #### ARGUMENTS
@@ -171,14 +196,14 @@ Can have more than one line. The arguments are joined with a single space in bet
 - The `COMMAND` will be executed as a sub-process.
 - Default shell selection:
   - Windows: the following is tried in order:
-    1. PowerShell 7 - `pwsh -NonInteractive -NoProfile -Command COMMAND`
-    2. PowerShell 5 (Windows PowerShell) - `powershell -NonInteractive -NoProfile -Command COMMAND`
-    3. Command Prompt - `cmd /C COMMAND`
+    1. (PowerShell 7) `pwsh -NonInteractive -NoProfile -Command COMMAND`
+    2. (PowerShell 5/Windows PowerShell) `powershell -NonInteractive -NoProfile -Command COMMAND`
+    3. (Command Prompt) `cmd /C COMMAND`
   - Other OS: `sh -c COMMAND`
-  - You can override this with a [command line argument]()
+  - You can override this with the `--shell` option.
 - The working directory of the sub-process will be the directory of the current file.
 - The sub-process will inherit the environment variables of the main process, with additional environment variables:
-  - `TXTPP_FILE`: the absolute path to the current file being processed.
+  - `TXTPP_FILE`: the path to the current file being processed.
   - (that's the only environment variable for now)
 #### EXAMPLE
 ```
@@ -187,7 +212,7 @@ TXTPP#run echo "hello world"
 #### CAVEATS
 1. `txtpp` will not run as a subcommand to avoid processing loops. You shouldn't need to run `txtpp` inside `txtpp` anyway.
 
-### Empty directive
+## Empty directive
 #### USAGE
 Empty directive has the empty string as the name and does nothing. It can be used to remove lines from the input.
 #### ARGUMENTS
@@ -195,14 +220,15 @@ Can have more than one line. All arguments to the empty directive will be ignore
 #### BEHAVIOR
 Nothing
 #### EXAMPLE
-For example, you can write something like:
+For example, you can use it to terminate a block comment
 ```javascript
 function hello() {
   // GENERATED CODE
-  /* -TXTPP#run
-      ./codegen
-
-     -TXTPP# */
+  /* TXTPP#run ./codegen
+     -arg
+     -really_long_arg
+     --really-really-long-option
+    -TXTPP# */
 }
 ```
 
@@ -210,26 +236,27 @@ If you have to put the end of the block comment in a new line, make sure to form
 ```javascript
 function hello() {
   // GENERATED CODE
-  /* -TXTPP#run
-      ./codegen
-
-     -TXTPP#
-     -*/
+  /* TXTPP#run ./codegen
+     -arg
+     -really_long_arg
+     --really-really-long-option
+    -TXTPP#
+    -*/
 }
 ```
 In both scenarios, the entire block comment `/**/` will be replaced with the output from running `./codegen`
 
-### Temp Directive
+## Temp Directive
 #### USAGE
-This directive is used to create a temporary file that can be referenced by `run`
+This directive is used to create a temporary file.
 #### ARGUMENTS
-Must have at least 1 argument. The first argument specifies the `FILE_PATH` to save the output. The rest of the arguments are joined by [line endings](#line-endings) to form the `CONTENT`, with a trailing line ending.
+Must have at least 1 argument. The first argument specifies the `FILE_PATH` to save the output (relative to the current file). The rest of the arguments are joined by [line endings](#line-endings) to form the `CONTENT`, with a trailing line ending.
 #### BEHAVIOR
 - `FILE_PATH` is resolved the same way as the [include directive](#include-directive)
 - `FILE_PATH` cannot end in `.txtpp`. It will cause an error.
   - This is to avoid undefined behavior as the preprocessor may or may not pick up the file generated by the `temp` directive.
 - `CONTENT` will be saved to `FILE_PATH`
-- `FILE_PATH` will be deleted when the current file is done being processed.
+- `FILE_PATH` will not be deleted after processing, but will be deleted with `clean`.
 #### EXAMPLE
 ```javascript
 function get_cities() {
@@ -246,7 +273,7 @@ function get_cities() {
   ];
 }
 ```
-### Tag Directive
+## Tag Directive
 #### USAGE
 This directive is used to create a tag to store the next directive's output.
 #### ARGUMENTS
@@ -265,6 +292,7 @@ Single-line only. The argument is `TAG`
 - Each tag must be deleted before another tag with the same name can be created.
 - The newlines in the output will be replaced by the [line endings](#line-endings) of the current file. Whether the output has a trailing newline or not will not be changed.
   - Example: if the stored output has no trailing newline, the part after the tag will be on the same line as the last line in the stored output.
+- If there are any unused tags in the end of the file, there will be an error.
 
 
 #### EXAMPLE
@@ -289,7 +317,7 @@ The following is invalid because the tag is used before the output is stored.
 </div>
 ```
 
-### Write Directive
+## Write Directive
 #### USAGE
 This directive writes its arguments to the output file. It can be used to escape other directives.
 #### ARGUMENTS
@@ -299,24 +327,23 @@ Can have more than one line. Each argument is one line in the output
 - Because the content is treated as output of a directive, tags won't be injected.
 #### EXAMPLE
 ```
--TXTPP#write the line below will be written to the output file as is
--TXTPP#run echo "hello world"
+ 1 |-TXTPP#write the line below will be written to the output file as is
+ 2 |-TXTPP#run echo "hello world"
+ 3 |stuff
+ 4 |
 ```
 Output
 ```
-the line below will be written to the output file as is
-TXTPP#run echo "hello world"
+ 1 |the line below will be written to the output file as is
+ 2 |TXTPP#run echo "hello world"stuff
+ 3 |
 ```
-
+(To put `stuff` on its own line, add an extra argument to the `write` directive)
 # Output Specification
 This section specifies details of the output of the preprocessor.
 ## Line endings
-The output files will have consistent line ending with the input files. If the input file has mixed line endings, the output file will have the same line endings as the first line in the input file.
+The output files and temporary output files will have consistent line ending with the input `.txtpp` files. If the input file has mixed line endings, the output file will have the same line endings as the first line in the input file.
 
 If the input file does not have a line ending, the output file will have the same line ending as the operating system (i.e. `\r\n` on Windows, `\n` on Unix).
 
-
-# API
-The full API doc is available on [docs.rs](https://docs.rs/txtpp)
-
-# Command Line Interface (CLI)
+The output files will have a trailing newline unless `--no-trailing-newline` is specified. The flag will not affect the temporary output files, however. Whether a temporary file has a trailing newline depends on if the directive has an empty line in the end.

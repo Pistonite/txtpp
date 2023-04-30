@@ -52,6 +52,7 @@
 //!     num_threads: 16,
 //!     mode: Mode::Verify,
 //!     verbosity: Verbosity::Quiet,
+//!     trailing_newline: false,
 //! };
 //!
 //! if let Err(e) = Txtpp::run(config) {

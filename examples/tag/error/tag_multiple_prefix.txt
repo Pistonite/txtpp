@@ -1,0 +1,7 @@
+You cannot create another tag that is a prefix of an existing tag (that is not used yet)
+because it causes ambiguity.
+TXTPP#tag this is tag 1
+store the output
+TXTPP#include tag_multiple_same.txtpp
+this will error
+TXTPP#tag this is tag

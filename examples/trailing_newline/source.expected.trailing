@@ -1,0 +1,6 @@
+If --no-trailing-newline is passed, no trailing newline will be added in the output.
+
+This flag has no effect on include and temp.
+
+this include file has no trailing new line
+end of file

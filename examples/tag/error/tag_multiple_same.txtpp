@@ -1,0 +1,4 @@
+You cannot create another tag with the same name before using up the existing one
+TXTPP#tag this is tag 1
+the next line will error
+TXTPP#tag this is tag 1

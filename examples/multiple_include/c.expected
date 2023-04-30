@@ -3,5 +3,4 @@ run some command first
  processing c.txtpp
 
 include a file
-    I am c1
-===end c===
+    I am c1===end c===

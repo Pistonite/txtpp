@@ -1,8 +1,17 @@
 # v0 (Preview)
 
-## 0.1.3
-- TODO: more tests
+## 0.1.4
 - TODO: timing info
+- TODO: more tests
+- TODO: detect TXTPP as subcommand
+- TODO: temp cannot save .txtpp
+
+## 0.1.3
+- More consistent handling of trailing newlines:
+  - Directive output will be written to the output as-is. If the output has no trailing newline (for example, the included file has no trailing newline, or if the run output prints no newline in the end), the next line in the source will be on the same line as the last line of the directive output.
+  - Temporary files will have a trailing newline if the `temp` directive has an empty line in the end, and vice versa.
+  - Output files will always have a trailing newline, or always have no trailing newlines with the `--no-trailing-newline` flag.
+- Unused tags at the end of the file will now be an error.
 
 ## 0.1.2
 - Fix rust verbatim paths not supported as working directory for powershell/cmd on windows.

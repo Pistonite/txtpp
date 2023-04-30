@@ -13,7 +13,7 @@ struct Cli {
     #[command(flatten)]
     flags: Flags,
     #[command(flatten)]
-    shell: ShellFlags,
+    shell: BuildFlags,
 }
 
 impl Cli {
@@ -45,7 +45,7 @@ enum Command {
         #[command(flatten)]
         flags: Flags,
         #[command(flatten)]
-        shell: ShellFlags,
+        shell: BuildFlags,
     },
 }
 
@@ -113,7 +113,7 @@ impl Flags {
 }
 
 #[derive(Debug, Clone, Args)]
-struct ShellFlags {
+struct BuildFlags {
     /// The shell command to use
     ///
     /// This should be a command that takes one argument, which is the command to run.
@@ -122,14 +122,23 @@ struct ShellFlags {
     ///
     /// If a shell is not specified, the platform-specific default shell will be used,
     /// which is `sh -c` on non-Windows. PowerShell is used on Windows with CMD as a fallback.
-    /// See https://github.com/iTNTPiston/txtpp for the default PowerShell flags used.
+    /// See https://github.com/iTNTPiston/txtpp#run-directive for the default PowerShell flags used.
     #[arg(short, long, default_value = "")]
     shell: String,
+
+    /// Don't add a trailing newline to the output.
+    ///
+    /// This will only affect the output files, not temporary files. Temporary files are
+    /// controlled by their arguments. See https://github.com/iTNTPiston/txtpp#line-endings
+    /// for more details.
+    #[arg(short, long)]
+    no_trailing_newline: bool,
 }
 
-impl ShellFlags {
+impl BuildFlags {
     fn apply_to(&self, config: &mut Config) {
         config.shell_cmd = self.shell.clone();
+        config.trailing_newline = !self.no_trailing_newline;
     }
 }
 

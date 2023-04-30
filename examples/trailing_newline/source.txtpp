@@ -1,0 +1,12 @@
+If --no-trailing-newline is passed, no trailing newline will be added in the output.
+
+This flag has no effect on include and temp.
+
+TXTPP#include include
+
+-TXTPP#temp temp.out
+- temp files should not be affected
++TXTPP#temp temp.out.trailing
++ temp files should not be affected. this will have trailing because there is an empty line after it
++
+end of file

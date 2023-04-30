@@ -1,0 +1,10 @@
+TXTPP#tag tag1
+-TXTPP#run echo "tag1 content"
+TXTPP#tag tag2
+injecting tag1...
+-TXTPP#include include
+TXTPP#tag tag3
+injecting tag2...
+-TXTPP#run echo "tag3 content"
+injecting tag3...
+end of file

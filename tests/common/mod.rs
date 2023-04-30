@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use txtpp::{error::TxtppError, *};
 
 pub struct ItEnv {
-    config: Config,
+    pub cfg: Config,
     test_description: String,
     test_dir: PathBuf,
 }
@@ -42,7 +42,7 @@ impl ItEnv {
         Self {
             test_description,
             test_dir: path,
-            config,
+            cfg: config,
         }
     }
 
@@ -55,13 +55,8 @@ impl ItEnv {
     }
 
     #[inline]
-    pub fn cfg(&mut self) -> &mut Config {
-        &mut self.config
-    }
-
-    #[inline]
     pub fn run(&self) -> Result<(), TxtppError> {
-        txtpp(self.config.clone())
+        txtpp(self.cfg.clone())
     }
 
     #[inline]

@@ -14,7 +14,7 @@ clean:
     cargo run -- clean examples -r
 
 # Pre-commit checks
-pre-commit:
+pre-commit: clean
     cargo fmt
     cargo doc
 

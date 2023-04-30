@@ -1,11 +1,11 @@
 //! Wrapper to perform file system operations
 
+use crate::error::PathError;
+use crate::fs::normalize_path;
+use error_stack::{IntoReport, Result};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use error_stack::{IntoReport, Result};
-use crate::error::PathError;
-use crate::fs::normalize_path;
 
 pub const CRLF: &str = "\r\n";
 pub const LF: &str = "\n";
@@ -25,10 +25,15 @@ where
     fn get_line_ending(&self) -> Result<&'static str, PathError> {
         let mut buf = vec![];
         let len = File::open(self)
-            .map(BufReader::new).and_then(|mut r|{
-                r.read_until(b'\n', &mut buf)
-            }).into_report().map_err(|e|{
-                e.change_context(PathError::from(self)).attach_printable(format!("Failed to get line ending for file: {}", normalize_path(&self.as_ref().display().to_string())))
+            .map(BufReader::new)
+            .and_then(|mut r| r.read_until(b'\n', &mut buf))
+            .into_report()
+            .map_err(|e| {
+                e.change_context(PathError::from(self))
+                    .attach_printable(format!(
+                        "Failed to get line ending for file: {}",
+                        normalize_path(&self.as_ref().display().to_string())
+                    ))
             })?;
         Ok(get_line_ending_from_buf(&buf, len))
     }
@@ -65,7 +70,10 @@ mod ut {
     macro_rules! test_line_ending {
         ($expected:expr, $buf:literal) => {
             let buf = $buf.to_string();
-            assert_eq!($expected, get_line_ending_from_buf(buf.as_bytes(), buf.len()));
+            assert_eq!(
+                $expected,
+                get_line_ending_from_buf(buf.as_bytes(), buf.len())
+            );
         };
     }
 

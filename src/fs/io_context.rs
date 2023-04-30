@@ -1,5 +1,5 @@
 use crate::error::{PpError, PpErrorKind};
-use crate::fs::{AbsPath, GetLineEnding, TxtppPath, normalize_path};
+use crate::fs::{normalize_path, AbsPath, GetLineEnding, TxtppPath};
 use crate::Mode;
 use error_stack::{IntoReport, Report, Result};
 use std::fs::File;
@@ -24,12 +24,14 @@ impl IOCtx {
     pub fn new(input_file: &AbsPath, mode: Mode) -> Result<Self, PpError> {
         let input_path = input_file.to_string();
 
-        let line_ending = input_file.get_line_ending().map_err(|e|{
+        let line_ending = input_file.get_line_ending().map_err(|e| {
             e.change_context(Self::make_error_with_kind(
                 input_path.clone(),
                 PpErrorKind::OpenFile,
             ))
-            .attach_printable(format!("could not read line ending for input file: `{input_path}`"))
+            .attach_printable(format!(
+                "could not read line ending for input file: `{input_path}`"
+            ))
         })?;
 
         let r = File::open(input_file)
@@ -264,7 +266,10 @@ impl CtxOut {
                             input_path.to_string(),
                             PpErrorKind::DeleteFile,
                         ))
-                        .attach_printable(format!("could not remove file: `{}`", normalize_path(&p.display().to_string())))
+                        .attach_printable(format!(
+                            "could not remove file: `{}`",
+                            normalize_path(&p.display().to_string())
+                        ))
                     })?;
                 }
                 Ok(Self::Clean)
@@ -276,7 +281,10 @@ impl CtxOut {
                         input_path.to_string(),
                         PpErrorKind::VerifyOutput,
                     ))
-                    .attach_printable(format!("file `{}` does not exist.", normalize_path(&p.display().to_string()))));
+                    .attach_printable(format!(
+                        "file `{}` does not exist.",
+                        normalize_path(&p.display().to_string())
+                    )));
                 }
                 let len = std::fs::metadata(p)
                     .into_report()
@@ -299,7 +307,10 @@ impl CtxOut {
                             input_path.to_string(),
                             PpErrorKind::OpenFile,
                         ))
-                        .attach_printable(format!("could not open output file: `{}`", normalize_path(&p.display().to_string())))
+                        .attach_printable(format!(
+                            "could not open output file: `{}`",
+                            normalize_path(&p.display().to_string())
+                        ))
                     })
                     .map(BufReader::new)?;
                 Ok(Self::Verify {

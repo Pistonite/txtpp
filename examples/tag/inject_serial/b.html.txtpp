@@ -1,14 +1,14 @@
 <html>
     <head>
-        <!-- TXTPP#tag TITLE
+        <!-- TXTPP#tag TAG
         -TXTPP# -->
         <!-- TXTPP#run echo -n "hello tag" 
         -TXTPP# -->
-        <title>TITLE</title>
+        <title>TAG</title>
     </head>
-    <!-- TXTPP#tag BODY
+    <!-- TXTPP#tag TAG
     -TXTPP# -->
     <!-- TXTPP#include body.html
     -TXTPP# -->
-    <body><pre>BODY</pre></body>
+    <body><pre>TAG</pre></body>
 </html>

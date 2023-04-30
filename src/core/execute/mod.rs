@@ -14,7 +14,7 @@ mod config;
 pub use config::*;
 
 mod pp;
-use pp::{do_preprocess, PpResult};
+use pp::{preprocess, PpResult};
 mod resolve_inputs;
 use resolve_inputs::resolve_inputs;
 mod scan_dir;
@@ -257,9 +257,10 @@ impl Txtpp {
         let send = self.send.clone();
         let shell = self.shell.clone();
         let mode = self.config.mode.clone();
+        let trailing_newline = self.config.trailing_newline;
         log::info!("processing file: {file}");
         self.threadpool.execute(move || {
-            let result = do_preprocess(&shell, &file, mode, is_first_pass);
+            let result = preprocess(&shell, &file, mode, is_first_pass, trailing_newline);
             send.send(TaskResult::Preprocess(result))
                 .expect("cannot send result")
         });

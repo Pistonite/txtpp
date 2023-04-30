@@ -1,0 +1,9 @@
+TXTPP#tag tag1
+-TXTPP#run echo "tag1 content"
+TXTPP#tag tag2
+-TXTPP#run echo "tag2 content"
+inject tag2 content
+TXTPP#tag tag3
+-TXTPP#run echo "tag3 content"
+inject tag1 content
+This file should error because tag 3 is not used

@@ -30,6 +30,8 @@ pub struct Config {
     pub mode: Mode,
     /// The verbosity. See [`Verbosity`]
     pub verbosity: Verbosity,
+    /// If the output files should have trailing newline
+    pub trailing_newline: bool,
 }
 
 impl Default for Config {
@@ -43,6 +45,7 @@ impl Default for Config {
     /// - Using 4 threads
     /// - Building output files
     /// - Regular verbosity
+    /// - Output files have trailing newline
     fn default() -> Self {
         Self {
             base_dir: PathBuf::from("."),
@@ -52,6 +55,7 @@ impl Default for Config {
             num_threads: 4,
             mode: Mode::Build,
             verbosity: Verbosity::Normal,
+            trailing_newline: true,
         }
     }
 }

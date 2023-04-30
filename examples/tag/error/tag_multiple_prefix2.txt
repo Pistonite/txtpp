@@ -1,0 +1,3 @@
+TXTPP#tag this is tag 1
+TXTPP#include tag_multiple_same.txtpp
+TXTPP#tag this is tag 12

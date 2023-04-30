@@ -1,22 +1,21 @@
-use std::fmt::Write;
-use std::path::PathBuf;
-
 use crate::core::{Mode, TagState};
 use crate::error::{PpError, PpErrorKind};
 use crate::fs::{AbsPath, IOCtx, Shell, TxtppPath};
 use error_stack::{IntoReport, Report, Result};
+use std::path::PathBuf;
 
 mod directive;
 pub use directive::*;
 
 /// Preprocess the txtpp file
-pub fn do_preprocess(
+pub fn preprocess(
     shell: &Shell,
     input_file: &AbsPath,
     mode: Mode,
     is_first_pass: bool,
+    trailing_newline: bool,
 ) -> Result<PpResult, PpError> {
-    Pp::run(input_file, shell, mode, is_first_pass)
+    Pp::run(input_file, shell, mode, is_first_pass, trailing_newline)
 }
 
 /// Preprocesser runtime
@@ -28,6 +27,7 @@ struct Pp<'a> {
     cur_directive: Option<Directive>,
     tag_state: TagState,
     pp_mode: PpMode,
+    execute_tail_line: Option<String>,
 }
 
 impl<'a> Pp<'a> {
@@ -36,6 +36,7 @@ impl<'a> Pp<'a> {
         shell: &'a Shell,
         mode: Mode,
         is_first_pass: bool,
+        trailing_newline: bool,
     ) -> Result<PpResult, PpError> {
         let context = IOCtx::new(input_file, mode.clone())?;
         Self {
@@ -50,26 +51,25 @@ impl<'a> Pp<'a> {
             } else {
                 PpMode::Execute
             },
+            execute_tail_line: None,
         }
-        .run_internal()
+        .run_internal(trailing_newline)
     }
 
-    fn run_internal(mut self) -> Result<PpResult, PpError> {
+    fn run_internal(mut self, trailing_newline: bool) -> Result<PpResult, PpError> {
+        let mut add_newline_before_next_output = false;
         // read txtpp file line by line
         loop {
-            let line = match self.context.next_line() {
-                Some(line) => Some(line?),
-                None => None,
-            };
+            let line = self.get_next_line()?;
 
-            let to_write = match self
+            let (to_write, has_tail) = match self
                 .iterate_directive(line)
                 .ignore_err_if_cleaning(&self.mode, || IterDirectiveResult::None("".to_string()))?
             {
                 IterDirectiveResult::Break => break,
                 IterDirectiveResult::LineTaken => {
                     // Don't write the line
-                    None
+                    (None, false)
                 }
                 IterDirectiveResult::None(line) => {
                     // Writing the line from source to output
@@ -78,7 +78,7 @@ impl<'a> Pp<'a> {
                     } else {
                         line
                     };
-                    Some(line)
+                    (Some(line), false)
                 }
                 IterDirectiveResult::Execute(d, line) => {
                     let whitespaces = d.whitespaces.clone();
@@ -88,46 +88,31 @@ impl<'a> Pp<'a> {
                             Some(self.format_directive_output(
                                 &whitespaces,
                                 raw_output.lines(),
-                                true,
-                            )?)
+                                raw_output.ends_with('\n'),
+                            ))
                         } else {
                             None
                         }
                     } else {
                         None
                     };
-
-                    let line = if let Some(line) = line {
-                        match Directive::detect_from(&line) {
-                            Some(d) => {
-                                self.cur_directive = Some(d);
-                                None
-                            }
-                            None => Some(line),
-                        }
+                    let has_tail = if line.is_some() {
+                        self.execute_tail_line = line;
+                        true
                     } else {
-                        line
+                        false
                     };
 
-                    let line = if self.pp_mode.is_execute() {
-                        line.map(|line| self.tag_state.inject_tags(&line, self.context.line_ending))
-                    } else {
-                        line
-                    };
-
-                    match (line, directive_output) {
-                        (Some(line), Some(directive_output)) => {
-                            Some(format!("{}{}", directive_output, line))
-                        }
-                        (Some(line), None) => Some(line),
-                        (None, Some(directive_output)) => Some(directive_output),
-                        (None, None) => None,
-                    }
+                    (directive_output, has_tail)
                 }
             };
 
             if self.pp_mode.is_execute() {
                 if let Some(x) = to_write {
+                    if add_newline_before_next_output {
+                        self.context.write_output(self.context.line_ending)?;
+                    }
+                    add_newline_before_next_output = !has_tail;
                     self.context.write_output(&x)?;
                 }
             }
@@ -137,9 +122,33 @@ impl<'a> Pp<'a> {
             return Ok(PpResult::HasDeps(self.input_file, deps));
         }
 
+        if self.tag_state.has_tags() && !matches!(self.mode, Mode::Clean) {
+            return Err(
+                Report::from(self.context.make_error(PpErrorKind::Directive))
+                    .attach_printable("Unused tag(s) found at the end of the file. Please make sure all created tags are used up.")
+                    .attach_printable(format!("tags: {}", self.tag_state))
+            );
+        }
+
+        if add_newline_before_next_output && trailing_newline {
+            self.context.write_output(self.context.line_ending)?;
+        }
+
         self.context.done()?;
 
         Ok(PpResult::Ok(self.input_file))
+    }
+
+    /// retrieve the next line
+    fn get_next_line(&mut self) -> Result<Option<String>, PpError> {
+        if self.execute_tail_line.is_some() {
+            return Ok(self.execute_tail_line.take());
+        }
+        let line = match self.context.next_line() {
+            Some(line) => Some(line?),
+            None => None,
+        };
+        Ok(line)
     }
 
     /// Update the directive and line based on the current directive and the next line
@@ -160,7 +169,8 @@ impl<'a> Pp<'a> {
                             if d.directive_type.supports_multi_line() && d.prefix.is_empty() {
                                 return Err(
                                     Report::from(self.context.make_error(PpErrorKind::Directive))
-                                        .attach_printable("multi-line directive must have a prefix."),
+                                        .attach_printable("multi-line directive must have a prefix. Trying adding a non-empty string before `TXTPP#`")
+                                        .attach_printable(format!("for `{d}`"))
                                 );
                             }
                             // Detected, remove this line
@@ -315,9 +325,7 @@ impl<'a> Pp<'a> {
             return self.context.write_temp_file(export_file, "");
         }
         // We force trailing newline if the file is not empty
-        let has_trailing_newline = args.len() > 1;
-        let contents =
-            self.format_directive_output("", args.iter().skip(1), has_trailing_newline)?;
+        let contents = self.format_directive_output("", args.iter().skip(1), false);
         self.context.write_temp_file(export_file, &contents)
     }
 
@@ -326,23 +334,15 @@ impl<'a> Pp<'a> {
         whitespaces: &str,
         raw_output: impl Iterator<Item = impl AsRef<str>>,
         has_trailing_newline: bool,
-    ) -> Result<String, PpError> {
-        let mut output = String::new();
-        for (i, line) in raw_output.enumerate() {
-            if i > 0 {
-                output.push_str(self.context.line_ending);
-            }
-            write!(output, "{whitespaces}{line}", line = line.as_ref())
-                .into_report()
-                .map_err(|e| {
-                    e.change_context(self.context.make_error(PpErrorKind::Directive))
-                        .attach_printable("could not format output")
-                })?;
-        }
+    ) -> String {
+        let mut output = raw_output
+            .map(|s| format!("{whitespaces}{line}", line = s.as_ref()))
+            .collect::<Vec<_>>()
+            .join(self.context.line_ending);
         if has_trailing_newline {
             output.push_str(self.context.line_ending);
         }
-        Ok(output)
+        output
     }
 }
 

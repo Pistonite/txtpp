@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 mod directive_add_line;
 mod directive_from;
 
@@ -30,6 +32,23 @@ impl Directive {
             directive_type,
             args,
         }
+    }
+}
+
+impl Display for Directive {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let arg_str = if self.args.len() == 1 {
+            self.args[0].clone()
+        } else {
+            format!("{} ...", self.args[0])
+        };
+        write!(
+            f,
+            "{whitespaces}{prefix}#{directive_type} {arg_str}",
+            whitespaces = self.whitespaces,
+            prefix = self.prefix,
+            directive_type = self.directive_type,
+        )
     }
 }
 
@@ -70,5 +89,18 @@ impl DirectiveType {
     /// Does directive support multi-line arguments
     pub fn supports_multi_line(&self) -> bool {
         !matches!(self, DirectiveType::Include | DirectiveType::Tag)
+    }
+}
+
+impl Display for DirectiveType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DirectiveType::Empty => write!(f, ""),
+            DirectiveType::Include => write!(f, "include"),
+            DirectiveType::Run => write!(f, "run"),
+            DirectiveType::Tag => write!(f, "tag"),
+            DirectiveType::Temp => write!(f, "temp"),
+            DirectiveType::Write => write!(f, "write"),
+        }
     }
 }
