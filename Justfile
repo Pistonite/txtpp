@@ -11,13 +11,19 @@ todo:
 
 # Clean example output
 clean:
-    cargo run -- clean examples -r
+    cargo run -- clean tests/examples docs -r
+
+# Generate the readme
+readme:
+    cargo run docs/README.md
+    mv docs/README.md README.md
 
 # Pre-commit checks
-pre-commit: clean
+pre-commit: && readme clean
     cargo fmt
     cargo doc
+    cargo test
 
 # Build and open docs
-doc:
+doc: pre-commit
     cargo doc --open

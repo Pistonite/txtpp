@@ -8,6 +8,7 @@ use std::path::Path;
 use std::process::Command;
 use which::which;
 
+/// Name of the environment variable set for subcommands for the current file being processed
 pub const TXTPP_FILE: &str = "TXTPP_FILE";
 
 /// Error related to shell

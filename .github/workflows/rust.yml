@@ -33,4 +33,4 @@ jobs:
     - name: Test
       run: cargo test --verbose
     - name: Make sure clean can run
-      run: cargo run -- clean examples -r
+      run: cargo run -- clean tests/examples -r

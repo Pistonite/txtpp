@@ -1,0 +1,13 @@
+The content of the write directive will not have tags injected,
+because it is technically output of a directive.
+
+0TXTPP#tag TAG_IN_WRITE
+1TXTPP#run echo foo
+3TXTPP#write some content with TAG_IN_WRITE in it.
+
+However, since write is a directive, you can store its output in a tag
+
+0TXTPP#tag TAG_WRITE
+1TXTPP#write some content with TAG_IN_WRITE in it.
+1
+Note that the tag is still not injected, but now both TAG_IN_WRITE and TAG_WRITE have stored content.

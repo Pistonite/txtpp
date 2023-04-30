@@ -5,6 +5,8 @@ use error_stack::{IntoReport, Report, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::TxtppPath;
+
 pub const TXTPP_EXT: &str = "txtpp";
 
 /// Representation of an absolute path that exists.
@@ -142,19 +144,16 @@ impl AbsPath {
 
         self.share_base(p_parent_abs.to_path_buf())
     }
+
+    pub fn trim_txtpp(&self) -> Result<String, PathError> {
+        let p = self.p.trim_txtpp()?;
+        Ok(path_string_from_base(&self.b, &p))
+    }
 }
 
 impl std::fmt::Display for AbsPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let path = if self.b == self.p {
-            &self.p
-        } else {
-            match self.p.strip_prefix(&self.b) {
-                Ok(p) => p,
-                Err(_) => &self.p,
-            }
-        };
-        write!(f, "{}", normalize_path(&path.display().to_string()))
+        write!(f, "{}", path_string_from_base(&self.b, &self.p))
     }
 }
 
@@ -168,4 +167,21 @@ where
             .attach_printable("cannot create file")
     })?;
     Ok(())
+}
+
+fn path_string_from_base<P>(base: &P, path: &P) -> String
+where
+    P: AsRef<Path>,
+{
+    let base = base.as_ref();
+    let path = path.as_ref();
+    let path = if base == path {
+        path
+    } else {
+        match path.strip_prefix(base) {
+            Ok(p) => p,
+            Err(_) => path,
+        }
+    };
+    normalize_path(&path.display().to_string()).to_string()
 }

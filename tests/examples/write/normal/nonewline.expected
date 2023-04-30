@@ -1,0 +1,4 @@
+The write directive should simply write its args to the file.
+hello
+world
+yaythis line will be on the same line as yay because there's no trailing newline in the write directive.

@@ -1,0 +1,9 @@
+The content of the write directive will not have tags injected,
+because it is technically output of a directive.
+
+some content with TAG_IN_WRITE in it.
+However, since write is a directive, you can store its output in a tag
+
+Note that the tag is still not injected, but now both foo
+ and some content with TAG_IN_WRITE in it.
+ have stored content.

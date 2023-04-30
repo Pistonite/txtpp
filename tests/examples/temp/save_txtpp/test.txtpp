@@ -1,0 +1,3 @@
+This file will error because temp directive cannot save a file with .txtpp extension
+-TXTPP#temp temp.txtpp
+- Error!

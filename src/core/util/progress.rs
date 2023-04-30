@@ -12,6 +12,7 @@ pub struct Progress {
     pub total_count: usize,
     last_update: Instant,
     verbosity: Verbosity,
+    pub has_error: bool,
 }
 impl Progress {
     pub fn new(verbosity: Verbosity) -> Self {
@@ -21,6 +22,7 @@ impl Progress {
             total_count: 0,
             last_update: Instant::now(),
             verbosity,
+            has_error: false,
         }
     }
     pub fn is_done(&self) -> bool {
@@ -81,7 +83,8 @@ impl Progress {
             .set_color(ColorSpec::new().set_bold(true).set_fg(Some(color)))?;
         write!(self.out, "{:>12}", status)?;
         self.out.reset()?;
-        writeln!(self.out, " {}", message)?;
+        // write the message then cleared to the end of line
+        writeln!(self.out, " {}{esc}[0K", message, esc = 27 as char)?;
         if self.done_count < self.total_count {
             self.update_progress_internal()?;
         }

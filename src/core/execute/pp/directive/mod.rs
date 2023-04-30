@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 mod directive_add_line;
 mod directive_from;
+use directive_from::TXTPP_HASH;
 
 /// Directive struct
 ///
@@ -44,7 +45,7 @@ impl Display for Directive {
         };
         write!(
             f,
-            "{whitespaces}{prefix}#{directive_type} {arg_str}",
+            "{whitespaces}{prefix}{TXTPP_HASH}{directive_type} {arg_str}",
             whitespaces = self.whitespaces,
             prefix = self.prefix,
             directive_type = self.directive_type,

@@ -35,7 +35,7 @@ impl ItEnv {
         copy_dir(example_dir_name, &path).unwrap();
 
         let mut config = Config::default();
-        config.num_threads = 1;
+        config.num_threads = 8;
         config.verbosity = Verbosity::Quiet;
         config.base_dir = path.clone();
 

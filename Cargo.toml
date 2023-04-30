@@ -1,6 +1,6 @@
 [package]
 name = "txtpp"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "A simple-to-use general purpose preprocessor for text files."
 repository = "https://github.com/iTNTPiston/txtpp"
@@ -13,7 +13,6 @@ exclude = [
     ".github/**/*",
     "Justfile"
 ]
-
 
 [dependencies]
 which = "^4.4.0"

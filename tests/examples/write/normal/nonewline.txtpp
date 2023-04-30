@@ -1,0 +1,5 @@
+The write directive should simply write its args to the file.
+-TXTPP#write hello
+-world
+ yay
+this line will be on the same line as yay because there's no trailing newline in the write directive.

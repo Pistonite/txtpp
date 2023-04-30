@@ -1,0 +1,4 @@
+This file has right directive syntax, but the name is not a valid
+directive, so it should not be recognized.
+
+TXTPP#hello

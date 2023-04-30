@@ -7,7 +7,7 @@ mod path;
 pub use path::*;
 
 mod shell;
-pub use shell::Shell;
+pub use shell::{Shell, TXTPP_FILE};
 
 mod io_context;
 pub use io_context::*;

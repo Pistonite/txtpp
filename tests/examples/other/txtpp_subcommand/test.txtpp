@@ -1,0 +1,4 @@
+This file will fail because txtpp cannot be used as a subcommand
+-TXTPP#run ../../debug/txtpp --help
+
+(We are using cargo run because it's in the dev environment)

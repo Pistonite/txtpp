@@ -28,20 +28,16 @@ These examples are also built with txtpp! Checkout the [docs](docs/examples) dir
 Say you have 2 files `foo.txt.txtpp` and `bar.txt`
 ```
 /// foo.txt.txtpp
-hello
-TXTPP#include bar.txt
-world
+TXTPP#include foo.txt.txtpp
 
 /// bar.txt
-bar
+TXTPP#include bar.txt
 ```
 
 Running `txtpp foo.txt` will produce `foo.txt`:
 ```
 /// foo.txt
-hello
-bar
-world
+TXTPP#include foo.txt
 ```
 If `bar.txt.txtpp` also exists, it will be preprocessed first to produce `bar.txt`, and the result will be used.
 
@@ -49,18 +45,12 @@ If `bar.txt.txtpp` also exists, it will be preprocessed first to produce `bar.tx
 Say you have a file `fiz.txt.txtpp`, we can run a command to include the `foo.txt.txtpp` file from the previous example:
 ```
 /// fiz.txt.txtpp
-hello                           
--TXTPP#run cat foo.txt.txtpp           
-world
+TXTPP#include fiz.txt.txtpp
 ```
 Running `txtpp fiz.txt` will produce `fiz.txt`:
 ```
 /// fiz.txt
-hello                           
-hello
-TXTPP#include bar.txt
-world
-world
+TXTPP#include fiz.txt
 ```
 
 # Table of Contents
@@ -117,18 +107,20 @@ Explanation:
 
 
 For example, you can write the directive like
-```
-        // TXTPP#run echo "hello world"
-```
+++TXTPP#write ```
+++        // TXTPP#run echo "hello world"
+++```
+
 which will be treated like a comment in most languages to help with syntax highlighting.
 
 The same example as a block comment
-```
-        /* TXTPP#run echo "
-           hello world
-           "
-          -TXTPP# */
-```
+++TXTPP#write ```
+++        /* TXTPP#run echo "
+++           hello world
+++           "
+++          -TXTPP# */
+++```
+
 This will execute the command `echo "hello world"`. The `-` in the last line in front of `TXTPP#` is needed to indicate that it's the start of a different directive.
 
 ## Execution
@@ -137,25 +129,23 @@ The directives are executed immediately after they are parsed. They may produce 
 If the directive has output (like `include` and `run`), it will be formated as:
 - Every line in the output will be prepended with `{WHITESPACES}`, so that the indentation is consistent
     ```
-       // TXTPP#run echo 1; echo 2
+    TXTPP#include run1.txtpp
+
     ```
     Output:
     ```
-       1
-       2
-    
+    TXTPP#include run1
 
     ```
 - The line endings will be normalized to be [the same as the output file](#output-specification). Whether the last line has a trailing newline is persisted from the output of the command/included file. If the output from the directive doesn't have a newline character in the end, the next line from the source file will be on the same line as the last line of the directive output.
     For example:
     ```
-       // TXTPP#run echo -n hello
-    world
+    TXTPP#include run2.txtpp
 
     ```
     Output:
     ```
-       helloworld
+    TXTPP#include run2
 
     ```
 
@@ -173,9 +163,10 @@ Single-line only. The argument is `FILE_PATH`
 - If `FILE_PATH` is an absolute path, it will be used as is. Otherwise, it should be relative to the (directory of) the current file.
 - If `FILE_PATH` does not end in `.txtpp`, and `FILE_PATH.txtpp` exists, `FILE_PATH.txtpp` will be preprocessed first to produce `FILE_PATH`, and the result will be used as the output. Note that you would still include `FILE_PATH`, not `FILE_PATH.txtpp`.
 #### EXAMPLE
-```
-TXTPP#include foo.txt
-```
+++TXTPP#write ```
+++TXTPP#include foo.txt
+++```
+
 
 ## Run Directive
 #### USAGE
@@ -196,9 +187,10 @@ Can have more than one line. The arguments are joined with a single space in bet
   - `TXTPP_FILE`: the path to the current file being processed. Currently this is the absolute path.
   - (that's the only environment variable for now)
 #### EXAMPLE
-```
-TXTPP#run echo "hello world"
-```
+++TXTPP#write ```
+++TXTPP#run echo "hello world"
+++```
+
 #### CAVEATS
 1. `txtpp` will not run inside a `run` directive to avoid complication.
 If you want to include the output of a `txtpp` file,
@@ -214,29 +206,31 @@ Can have more than one line. All arguments to the empty directive will be ignore
 Nothing
 #### EXAMPLE
 For example, you can use it to terminate a block comment
-```javascript
-function hello() {
-  // GENERATED CODE
-  /* TXTPP#run ./codegen
-     -arg
-     -really_long_arg
-     --really-really-long-option
-    -TXTPP# */
-}
-```
+++TXTPP#write ```javascript
+++function hello() {
+++  // GENERATED CODE
+++  /* TXTPP#run ./codegen
+++     -arg
+++     -really_long_arg
+++     --really-really-long-option
+++    -TXTPP# */
+++}
+++```
+
 
 If you have to put the end of the block comment in a new line, make sure to format it correctly so it is treated as part of the directive.
-```javascript
-function hello() {
-  // GENERATED CODE
-  /* TXTPP#run ./codegen
-     -arg
-     -really_long_arg
-     --really-really-long-option
-    -TXTPP#
-    -*/
-}
-```
+++TXTPP#write ```javascript
+++function hello() {
+++  // GENERATED CODE
+++  /* TXTPP#run ./codegen
+++     -arg
+++     -really_long_arg
+++     --really-really-long-option
+++    -TXTPP#
+++    -*/
+++}
+++```
+
 
 In both scenarios, the entire block comment `/**/` will be replaced with the output from running `./codegen`
 
@@ -253,25 +247,8 @@ Must have at least 1 argument. The first argument specifies the `FILE_PATH` to s
 - `FILE_PATH` will not be deleted after processing, but will be deleted with `clean`.
 #### EXAMPLE
 ```javascript
-// In this example we will export a python script,
-// and use that to generate JS code from a csv
-function get_cities() {
-    return [
-        // TXTPP#temp gen_cities.g.py
-        // import csv
-        //
-        // with open('city.csv', 'r') as f:
-        //     reader = csv.reader(f)
-        //     next(reader) # skip header
-        //     for city, country in reader:
-        //         print(f'{{ city: "{city}", country: "{country}"}},')
-        /* --- generated code --- */
-        // TXTPP#run python gen_cities.g.py
-        /* --- generated code --- */
-    ];
-}
-// Note we used /*  */ to break the prefix pattern `// ` so that the directive can end
-// You can also use an empty line to make it simple.
+TXTPP#include ../tests/examples/temp/python_script/city.js.txtpp
+
 ```
 ## Tag Directive
 #### USAGE
@@ -297,25 +274,27 @@ Single-line only. The argument is `TAG`
 
 #### EXAMPLE
 In this example, we want the output to be exactly as is because of the `<pre>` tag. The output of the `run` directive will be put in the `<pre>` tag.
-```html
-<div>
-  <!-- TXTPP#tag PRE_CONTENT -->
-  <!-- TXTPP#run python gen_pre.py
+++TXTPP#write ```html
+++<div>
+++  <!-- TXTPP#tag PRE_CONTENT -->
+++  <!-- TXTPP#run python gen_pre.py
+++  
+++       TXTPP# -->
+++  <pre>PRE_CONTENT --></pre>
+++</div>
+++```
 
-       TXTPP# -->
-  <pre>PRE_CONTENT --></pre>
-</div>
-```
 The following is invalid because the tag is used before the output is stored.
-```html
-<div>
-  <!-- TXTPP#tag PRE_CONTENT -->
-  <pre>PRE_CONTENT --></pre>
-  <!-- TXTPP#run python gen_pre.py
+++TXTPP#write ```html
+++<div>
+++  <!-- TXTPP#tag PRE_CONTENT -->
+++  <pre>PRE_CONTENT --></pre>
+++  <!-- TXTPP#run python gen_pre.py
+++  
+++       TXTPP# -->
+++</div>
+++```
 
-       TXTPP# -->
-</div>
-```
 
 ## Write Directive
 #### USAGE
@@ -327,15 +306,12 @@ Can have more than one line. Each argument is one line in the output
 - Because the content is treated as output of a directive, tags won't be injected.
 #### EXAMPLE
 ```
--TXTPP#write the line below will be written to the output file as is
--TXTPP#run echo "hello world"
-stuff
+TXTPP#include write.txtpp
 
 ```
 Output
 ```
-the line below will be written to the output file as is
-TXTPP#run echo "hello world"stuff
+TXTPP#include write
 
 ```
 (To put `stuff` on its own line, add an extra line to the `write` directive)

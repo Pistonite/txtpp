@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand};
+use std::env;
 use std::process::ExitCode;
-use txtpp::{txtpp, Config, Mode, Verbosity};
+use txtpp::{txtpp, Config, Mode, Verbosity, TXTPP_FILE};
 
 /// txtpp CLI
 ///
@@ -143,7 +144,13 @@ impl BuildFlags {
 }
 
 fn main() -> ExitCode {
-    eprintln!("This is a preview version and may not have all features implemented.");
+    if let Ok(f) = env::var(TXTPP_FILE) {
+        if !f.is_empty() {
+            eprintln!("Cannot run txtpp as a subcommand!");
+            return ExitCode::FAILURE;
+        }
+    }
+
     env_logger::init();
     let args = Cli::parse();
 

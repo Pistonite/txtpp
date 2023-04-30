@@ -99,4 +99,11 @@ impl Mode {
             Self::Verify => verbs::VERIFYING,
         }
     }
+    pub fn processed_verb(&self) -> &'static str {
+        match self {
+            Self::Build => verbs::PROCESSED,
+            Self::Clean => verbs::CLEANED,
+            Self::Verify => verbs::VERIFIED,
+        }
+    }
 }

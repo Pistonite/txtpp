@@ -82,7 +82,11 @@ impl<'a> Pp<'a> {
                 }
                 IterDirectiveResult::Execute(d, line) => {
                     let whitespaces = d.whitespaces.clone();
-                    let directive_output = if let Some(raw_output) = self.execute_directive(d)? {
+                    let d_str = format!("for `{d}`");
+                    let directive_output = if let Some(raw_output) = self
+                        .execute_directive(d)
+                        .map_err(|e| e.attach_printable(d_str))?
+                    {
                         log::debug!("directive output: {raw_output:?}");
                         if self.tag_state.try_store(&raw_output).is_err() {
                             Some(self.format_directive_output(
@@ -170,7 +174,6 @@ impl<'a> Pp<'a> {
                                 return Err(
                                     Report::from(self.context.make_error(PpErrorKind::Directive))
                                         .attach_printable("multi-line directive must have a prefix. Trying adding a non-empty string before `TXTPP#`")
-                                        .attach_printable(format!("for `{d}`"))
                                 );
                             }
                             // Detected, remove this line
@@ -264,7 +267,7 @@ impl<'a> Pp<'a> {
                 })?;
                 None
             }
-            DirectiveType::Write => Some(d.args.into_iter().skip(1).collect::<Vec<_>>().join("\n")),
+            DirectiveType::Write => Some(d.args.join("\n")),
         };
         Ok(raw_output)
     }
@@ -321,6 +324,14 @@ impl<'a> Pp<'a> {
                     .attach_printable("invalid temp directive: no export file path specified"));
             }
         };
+
+        if PathBuf::from(export_file).is_txtpp_file() {
+            return Err(Report::new(self.context.make_error(PpErrorKind::Directive))
+                .attach_printable(format!(
+                "invalid temp directive: export file path cannot be a txtpp file: `{export_file}`"
+            )));
+        }
+
         if is_clean {
             return self.context.write_temp_file(export_file, "");
         }
