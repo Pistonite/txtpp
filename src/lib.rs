@@ -5,7 +5,7 @@
 //! cargo install txtpp
 //! ```
 //!
-//! See the [README on GitHub](https://github.com/iTNTPiston/txtpp) for more information, like the directive syntax and CLI usage.
+//! See the [README on GitHub](https://github.com/Pistonite/txtpp) for more information, like the directive syntax and CLI usage.
 //!
 //! ## As a library
 //! This library gives you access to the full functionalities of txtpp. The API consists of:
