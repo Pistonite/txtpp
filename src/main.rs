@@ -5,7 +5,7 @@ use txtpp::{txtpp, Config, Mode, Verbosity, TXTPP_FILE};
 
 /// txtpp CLI
 ///
-/// See https://github.com/iTNTPiston/txtpp for more info
+/// See https://github.com/Pistonite/txtpp for more info
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 struct Cli {
@@ -123,14 +123,14 @@ struct BuildFlags {
     ///
     /// If a shell is not specified, the platform-specific default shell will be used,
     /// which is `sh -c` on non-Windows. PowerShell is used on Windows with CMD as a fallback.
-    /// See https://github.com/iTNTPiston/txtpp#run-directive for the default PowerShell flags used.
+    /// See https://github.com/Pistonite/txtpp#run-directive for the default PowerShell flags used.
     #[arg(short, long, default_value = "")]
     shell: String,
 
     /// Don't add a trailing newline to the output.
     ///
     /// This will only affect the output files, not temporary files. Temporary files are
-    /// controlled by their arguments. See https://github.com/iTNTPiston/txtpp#line-endings
+    /// controlled by their arguments. See https://github.com/Pistonite/txtpp#line-endings
     /// for more details.
     #[arg(short, long)]
     no_trailing_newline: bool,
