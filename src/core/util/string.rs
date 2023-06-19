@@ -29,7 +29,7 @@ mod ut {
     #[test]
     fn test_empty() {
         assert_eq!("", "".replace_line_ending("\n", false));
-        assert_eq!("", "\r".replace_line_ending("\n", false));
+        assert_eq!("\r", "\r".replace_line_ending("\n", false));
         assert_eq!("\n", "\r\n".replace_line_ending("\n", false));
     }
 

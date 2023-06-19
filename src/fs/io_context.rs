@@ -2,6 +2,7 @@ use crate::error::{PpError, PpErrorKind};
 use crate::fs::{normalize_path, AbsPath, GetLineEnding, TxtppPath};
 use crate::Mode;
 use error_stack::{IntoReport, Report, Result};
+use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Read, Write};
 use std::path::{Path, PathBuf};
@@ -133,38 +134,49 @@ impl IOCtx {
     pub fn write_temp_file(&mut self, temp_path: &str, contents: &str) -> Result<(), PpError> {
         let p = PathBuf::from(temp_path);
 
-        match self.out {
-            CtxOut::Build { .. } | CtxOut::Verify { .. } => {
-                log::debug!("writing temp file: {}", p.display());
-                let export_file = self.work_dir.try_resolve(&p, true).map_err(|e| {
-                    e.change_context(make_error!(self, PpErrorKind::WriteFile))
-                        .attach_printable(format!("could not resolve temp file: `{}`", p.display()))
+        if let CtxOut::Clean { .. } = self.out {
+            if let Ok(export_file) = self.work_dir.try_resolve(&p, false) {
+                fs::remove_file(&export_file).into_report().map_err(|e| {
+                    e.change_context(make_error!(self, PpErrorKind::DeleteFile))
+                        .attach_printable(format!("could not remove temp file: `{export_file}`"))
                 })?;
-                if export_file.as_path().is_dir() {
-                    return Err(Report::new(make_error!(self, PpErrorKind::WriteFile))
-                        .attach_printable(format!("cannot write to directory: `{export_file}`")));
-                }
-                std::fs::write(&export_file, contents)
-                    .into_report()
-                    .map_err(|e| {
-                        e.change_context(make_error!(self, PpErrorKind::WriteFile))
-                            .attach_printable(format!("could not write temp file: `{export_file}`"))
-                    })
             }
-            CtxOut::Clean { .. } => {
-                if let Ok(export_file) = self.work_dir.try_resolve(&p, false) {
-                    std::fs::remove_file(&export_file)
+            return Ok(());
+        }
+
+        log::debug!("writing temp file: {}", p.display());
+        let export_file = self.work_dir.try_resolve(&p, true).map_err(|e| {
+            e.change_context(make_error!(self, PpErrorKind::WriteFile))
+                .attach_printable(format!("could not resolve temp file: `{}`", p.display()))
+        })?;
+        if export_file.as_path().is_dir() {
+            return Err(Report::new(make_error!(self, PpErrorKind::WriteFile))
+                .attach_printable(format!("cannot write to directory: `{export_file}`")));
+        }
+        if let CtxOut::Verify { .. } = self.out {
+            // Check if the temp file already exists and has the same content
+            if export_file.as_path().exists() {
+                let current_content =
+                    fs::read_to_string(&export_file)
                         .into_report()
                         .map_err(|e| {
-                            e.change_context(make_error!(self, PpErrorKind::DeleteFile))
+                            e.change_context(make_error!(self, PpErrorKind::ReadFile))
                                 .attach_printable(format!(
-                                    "could not remove temp file: `{export_file}`"
+                                    "could not read temp file: `{export_file}`"
                                 ))
-                        })?;
+                        })?; // if we can't read it, we probably can't write it either
+                if current_content == contents {
+                    log::debug!("temp file already exists with same content, skipping");
+                    return Ok(());
                 }
-                Ok(())
             }
         }
+        fs::write(&export_file, contents)
+            .into_report()
+            .map_err(|e| {
+                e.change_context(make_error!(self, PpErrorKind::WriteFile))
+                    .attach_printable(format!("could not write temp file: `{export_file}`"))
+            })
     }
 
     /// Finish
@@ -261,7 +273,7 @@ impl CtxOut {
             Mode::Clean => {
                 let p = output_path.as_ref();
                 if p.exists() {
-                    std::fs::remove_file(p).into_report().map_err(|e| {
+                    fs::remove_file(p).into_report().map_err(|e| {
                         e.change_context(IOCtx::make_error_with_kind(
                             input_path.to_string(),
                             PpErrorKind::DeleteFile,
@@ -286,7 +298,7 @@ impl CtxOut {
                         normalize_path(&p.display().to_string())
                     )));
                 }
-                let len = std::fs::metadata(p)
+                let len = fs::metadata(p)
                     .into_report()
                     .map_err(|e| {
                         e.change_context(IOCtx::make_error_with_kind(

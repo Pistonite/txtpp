@@ -24,7 +24,7 @@ impl ItEnv {
         // create test directory
         let root_path = Path::new("target/test_out");
         if !root_path.exists() {
-            std::fs::create_dir_all(&root_path).unwrap();
+            std::fs::create_dir_all(root_path).unwrap();
         }
         let path = root_path.join(test_name);
         if path.exists() {
@@ -34,10 +34,12 @@ impl ItEnv {
         // copy example directory to test directory
         copy_dir(example_dir_name, &path).unwrap();
 
-        let mut config = Config::default();
-        config.num_threads = 8;
-        config.verbosity = Verbosity::Quiet;
-        config.base_dir = path.clone();
+        let config: Config = txtpp::Config {
+            num_threads: 8,
+            verbosity: Verbosity::Quiet,
+            base_dir: path.clone(),
+            ..Default::default()
+        };
 
         Self {
             test_description,
@@ -49,7 +51,7 @@ impl ItEnv {
     #[inline]
     pub fn execute<F>(&mut self, f: F)
     where
-        F: FnOnce(&mut Self) -> (),
+        F: FnOnce(&mut Self),
     {
         f(self)
     }
@@ -62,14 +64,14 @@ impl ItEnv {
     #[inline]
     pub fn set_file(&self, file_name: &str, contents: &str) {
         let path = self.test_dir.join(file_name);
-        std::fs::write(&path, contents).unwrap();
+        std::fs::write(path, contents).unwrap();
     }
 
     #[inline]
     #[allow(dead_code)]
     pub fn delete_file(&self, file_name: &str) {
         let path = self.test_dir.join(file_name);
-        std::fs::remove_file(&path).unwrap();
+        std::fs::remove_file(path).unwrap();
     }
 
     pub fn assert_file_eq(&self, file_name: &str, expected_file_name: &str) {
@@ -121,6 +123,11 @@ impl ItEnv {
             self.test_description,
             self.test_dir.display()
         );
+    }
+
+    pub fn get_modification_time(&self, path_name: &str) -> std::io::Result<std::time::SystemTime> {
+        let p = self.test_dir.join(path_name);
+        std::fs::metadata(p)?.modified()
     }
 }
 
