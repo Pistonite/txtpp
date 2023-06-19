@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.2.0
+- Verify mode no longer re-writes temp files if they are already up-to-date.
+
 ## 0.1.5
 - Migrate repo and update links. (otherwise same as 0.1.4)
 

@@ -27,9 +27,8 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - uses: actions/setup-python@v3.0.0
-      with:
-        python-version: '3.10'
+    - name: Show Compiler Version
+      run: rustc --version --verbose
     - name: Test
       run: cargo test --verbose
     - name: Make sure clean can run

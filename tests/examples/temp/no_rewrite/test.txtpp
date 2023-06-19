@@ -1,0 +1,5 @@
+This example use the temp directive to create a temp file.
+
+Then it calls verify to check if the temp file is re-created using the modification time.
+-TXTPP#temp hello.txt
+-something

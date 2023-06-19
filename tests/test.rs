@@ -117,7 +117,7 @@ testit!(tests__examples__tag__inject_one, |env| {
     env.assert_file_eq("a", "a.expected");
 });
 
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 testit!(tests__examples__tag__inject_serial, |env| {
     assert!(env.run().is_ok());
     env.assert_file_eq("b.html", "b.html.expected");
@@ -129,7 +129,7 @@ testit!(tests__examples__tag__inject_serial_windows, |env| {
     env.assert_file_eq("b.html", "b.html.expected");
 });
 
-#[cfg(linux)]
+#[cfg(target_os = "linux")]
 testit!(tests__examples__tag__inject_multiple, |env| {
     assert!(env.run().is_ok());
     env.assert_file_eq("test.txt", "test.txt.expected");
@@ -198,4 +198,18 @@ testit!(tests__examples__write__inject_tags, |env| {
 
 testit!(tests__examples__other__txtpp_subcommand, |env| {
     assert!(env.run().is_err());
+});
+
+testit!(tests__examples__temp__no_rewrite, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("test", "test.expected");
+    env.assert_path_exists("hello.txt", true);
+    let modified = env.get_modification_time("hello.txt");
+    assert!(modified.is_ok());
+    // call verify now, should not rewrite
+    env.cfg.mode = Mode::Verify;
+    assert!(env.run().is_ok());
+    let modified2 = env.get_modification_time("hello.txt");
+    assert!(modified2.is_ok());
+    assert_eq!(modified.unwrap(), modified2.unwrap());
 });

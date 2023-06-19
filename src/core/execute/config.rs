@@ -86,8 +86,10 @@ pub enum Mode {
     /// Verify output files are up to date
     ///
     /// In this mode, the output files will be compared against output from a fresh run.
-    /// The run will fail if any output is different from the fresh output. Note that the temporary files
-    /// are not compared, and the temporary files may be rebuilt in the process in order to generate the fresh output.
+    /// The run will fail if any output is different from the fresh output.
+    /// Note that the temporary files may be rebuilt in the process in order to generate the fresh output.
+    /// However, temporary files that already have the same content will not be re-written to avoid changing the modification time.
+    /// Therefore it is safe to wrap `txtpp verify` with other tools that watch for changes.
     Verify,
 }
 
