@@ -4,4 +4,4 @@ with open('city.csv', 'r') as f:
     reader = csv.reader(f)
     next(reader) # skip header
     for city, country in reader:
-        print(f'{{ city: "{city}", country: "{country}"}},')
+        print(f"{{ city: \"{city}\", country: \"{country}\"}},")
