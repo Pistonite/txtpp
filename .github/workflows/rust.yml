@@ -27,8 +27,13 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
     - name: Show Compiler Version
       run: rustc --version --verbose
+    - name: Clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
     - name: Test
       run: cargo test --verbose
     - name: Make sure clean can run

@@ -9,7 +9,7 @@ function get_cities() {
         //     reader = csv.reader(f)
         //     next(reader) # skip header
         //     for city, country in reader:
-        //         print(f'{{ city: "{city}", country: "{country}"}},')
+        //         print(f"{{ city: \"{city}\", country: \"{country}\"}},")
         /* --- generated code --- */
         // TXTPP#run python gen_cities.g.py
         /* --- generated code --- */
