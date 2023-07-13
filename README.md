@@ -264,7 +264,7 @@ function get_cities() {
         //     reader = csv.reader(f)
         //     next(reader) # skip header
         //     for city, country in reader:
-        //         print(f'{{ city: "{city}", country: "{country}"}},')
+        //         print(f"{{ city: \"{city}\", country: \"{country}\"}},")
         /* --- generated code --- */
         // TXTPP#run python gen_cities.g.py
         /* --- generated code --- */
@@ -272,6 +272,7 @@ function get_cities() {
 }
 // Note we used /*  */ to break the prefix pattern `// ` so that the directive can end
 // You can also use an empty line to make it simple.
+
 ```
 ## Tag Directive
 #### USAGE

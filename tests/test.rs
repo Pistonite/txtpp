@@ -204,12 +204,31 @@ testit!(tests__examples__temp__no_rewrite, |env| {
     assert!(env.run().is_ok());
     env.assert_file_eq("test", "test.expected");
     env.assert_path_exists("hello.txt", true);
-    let modified = env.get_modification_time("hello.txt");
-    assert!(modified.is_ok());
+    env.assert_path_exists("test", true);
+    let modified = env.get_modification_time("hello.txt").unwrap();
+    let modified_out = env.get_modification_time("test").unwrap();
+
     // call verify now, should not rewrite
     env.cfg.mode = Mode::Verify;
     assert!(env.run().is_ok());
-    let modified2 = env.get_modification_time("hello.txt");
-    assert!(modified2.is_ok());
-    assert_eq!(modified.unwrap(), modified2.unwrap());
+    let modified2 = env.get_modification_time("hello.txt").unwrap();
+    let modified_out2 = env.get_modification_time("test").unwrap();
+    assert_eq!(modified, modified2);
+    assert_eq!(modified_out, modified_out2);
+
+    // using in memory build should not rewrite
+    env.cfg.mode = Mode::InMemoryBuild;
+    assert!(env.run().is_ok());
+    let modified3 = env.get_modification_time("hello.txt").unwrap();
+    let modified_out3 = env.get_modification_time("test").unwrap();
+    assert_eq!(modified, modified3);
+    assert_eq!(modified_out, modified_out3);
+
+    // using regular build should rewrite
+    env.cfg.mode = Mode::Build;
+    assert!(env.run().is_ok());
+    let modified4 = env.get_modification_time("hello.txt").unwrap();
+    let modified_out4 = env.get_modification_time("test").unwrap();
+    assert_eq!(modified, modified4); // temp file is always checked before re-written
+    assert_ne!(modified_out, modified_out4);
 });

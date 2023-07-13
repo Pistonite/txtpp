@@ -12,7 +12,9 @@ use std::path::{Path, PathBuf};
 /// This is an IO wrapper for reading from txtpp file and writing to the output file.
 #[derive(Debug)]
 pub struct IOCtx {
+    /// Input reader
     input: Lines<BufReader<File>>,
+    /// Output wrapper
     out: CtxOut,
     pub cur_line: usize,
     pub work_dir: AbsPath,
@@ -105,6 +107,10 @@ impl IOCtx {
                         .attach_printable(format!("cannot write to `{}`", path.display()))
                 })
             }
+            CtxOut::InMemoryBuild { out, .. } => {
+                out.push_str(output);
+                Ok(())
+            }
             CtxOut::Clean { .. } => Ok(()), // do nothing
             CtxOut::Verify { path, out, rem } => {
                 log::debug!("verifying content: {output:?}");
@@ -153,24 +159,20 @@ impl IOCtx {
             return Err(Report::new(make_error!(self, PpErrorKind::WriteFile))
                 .attach_printable(format!("cannot write to directory: `{export_file}`")));
         }
-        if let CtxOut::Verify { .. } = self.out {
-            // Check if the temp file already exists and has the same content
-            if export_file.as_path().exists() {
-                let current_content =
-                    fs::read_to_string(&export_file)
-                        .into_report()
-                        .map_err(|e| {
-                            e.change_context(make_error!(self, PpErrorKind::ReadFile))
-                                .attach_printable(format!(
-                                    "could not read temp file: `{export_file}`"
-                                ))
-                        })?; // if we can't read it, we probably can't write it either
-                if current_content == contents {
-                    log::debug!("temp file already exists with same content, skipping");
-                    return Ok(());
-                }
+        // Check if the temp file already exists and has the same content
+        if export_file.as_path().exists() {
+            let current_content = fs::read_to_string(&export_file)
+                .into_report()
+                .map_err(|e| {
+                    e.change_context(make_error!(self, PpErrorKind::ReadFile))
+                        .attach_printable(format!("could not read temp file: `{export_file}`"))
+                })?; // if we can't read it, we probably can't write it either
+            if current_content == contents {
+                log::debug!("temp file already exists with same content, skipping");
+                return Ok(());
             }
         }
+
         fs::write(&export_file, contents)
             .into_report()
             .map_err(|e| {
@@ -186,6 +188,28 @@ impl IOCtx {
                 e.change_context(make_error!(self, PpErrorKind::WriteFile))
                     .attach_printable(format!("cannot write to `{}`", path.display()))
             }),
+            CtxOut::InMemoryBuild { path, out } => {
+                if path.as_path().exists() {
+                    let current_content = fs::read_to_string(&path).into_report().map_err(|e| {
+                        e.change_context(make_error!(self, PpErrorKind::ReadFile))
+                            .attach_printable(format!(
+                                "could not read existing output file: `{path}`",
+                                path = path.display()
+                            ))
+                    })?; // if we can't read it, we probably can't write it either
+                    if &current_content == out {
+                        log::debug!("output file already exists with same content, skipping");
+                        return Ok(());
+                    }
+                }
+                fs::write(&path, out).into_report().map_err(|e| {
+                    e.change_context(make_error!(self, PpErrorKind::WriteFile))
+                        .attach_printable(format!(
+                            "could not write output file: `{path}`",
+                            path = path.display()
+                        ))
+                })
+            }
             CtxOut::Clean { .. } => Ok(()), // do nothing
             CtxOut::Verify { path, rem, .. } => {
                 if *rem != 0 {
@@ -233,11 +257,31 @@ use make_verify_report;
 /// Output context, which depends on the mode.
 #[derive(Debug)]
 enum CtxOut {
+    /// Build mode.
+    ///
+    /// Write to the output file.
     Build {
+        /// Path to the output file
         path: PathBuf,
+        /// Output writer
         out: BufWriter<File>,
     },
+    /// Build mode in memory
+    ///
+    /// Write to the output file.
+    InMemoryBuild {
+        /// Path to the output file
+        path: PathBuf,
+        /// Output buffer
+        out: String,
+    },
+    /// Clean mode.
+    ///
+    /// Delete the output file and temporary files and do nothing when writing
     Clean,
+    /// Verify mode.
+    ///
+    /// Read existing file and verify that it is the same as the fresh output
     Verify {
         path: PathBuf,
         out: BufReader<File>,
@@ -270,6 +314,10 @@ impl CtxOut {
                     path: output_path.as_ref().to_path_buf(),
                 })
             }
+            Mode::InMemoryBuild => Ok(Self::InMemoryBuild {
+                out: String::new(),
+                path: output_path.as_ref().to_path_buf(),
+            }),
             Mode::Clean => {
                 let p = output_path.as_ref();
                 if p.exists() {

@@ -15,6 +15,17 @@ struct Cli {
     flags: Flags,
     #[command(flatten)]
     shell: BuildFlags,
+
+    /// Only touch output file if the content need to change
+    ///
+    /// This will keep the fresh output in memory until the end, and compare it
+    /// with the existing output file. If the content is the same, the output
+    /// will not be written. This is useful when running txtpp will a watch system like
+    /// `cargo watch`.
+    ///
+    /// Note that this will increase memory usage and may fail if the file cannot fit in memory.
+    #[arg(short = 'N', long)]
+    needed: bool,
 }
 
 impl Cli {
@@ -22,7 +33,11 @@ impl Cli {
         match &self.subcommand {
             Some(subcommand) => subcommand.apply_to(config),
             None => {
-                config.mode = Mode::Build;
+                config.mode = if self.needed {
+                    Mode::InMemoryBuild
+                } else {
+                    Mode::Build
+                };
                 self.flags.apply_to(config);
                 self.shell.apply_to(config);
             }

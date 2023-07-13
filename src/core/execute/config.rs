@@ -77,7 +77,12 @@ pub enum Mode {
     /// For every `.txtpp` file found from the inputs, it will build the output file and any temporary file
     /// the `.txtpp` may produce. Dependencies in `include` directives will be built automatically as well, even if
     /// not specified in the inputs.
+    ///
+    /// Note that the temporary files are be rebuilt in the process in order to generate the fresh output.
+    /// However, temporary files that already have the same content will not be re-written to avoid changing the modification time.
     Build,
+    /// Build output files with the --needed flag
+    InMemoryBuild,
     /// Delete output files
     ///
     /// Remove the output file and any temporary file the `.txtpp` input files may produce.
@@ -87,23 +92,23 @@ pub enum Mode {
     ///
     /// In this mode, the output files will be compared against output from a fresh run.
     /// The run will fail if any output is different from the fresh output.
-    /// Note that the temporary files may be rebuilt in the process in order to generate the fresh output.
+    ///
+    /// Note that the temporary files are rebuilt in the process in order to generate the fresh output.
     /// However, temporary files that already have the same content will not be re-written to avoid changing the modification time.
-    /// Therefore it is safe to wrap `txtpp verify` with other tools that watch for changes.
     Verify,
 }
 
 impl Mode {
     pub fn processing_verb(&self) -> &'static str {
         match self {
-            Self::Build => verbs::PROCESSING,
+            Self::Build | Self::InMemoryBuild => verbs::PROCESSING,
             Self::Clean => verbs::CLEANING,
             Self::Verify => verbs::VERIFYING,
         }
     }
     pub fn processed_verb(&self) -> &'static str {
         match self {
-            Self::Build => verbs::PROCESSED,
+            Self::Build | Self::InMemoryBuild => verbs::PROCESSED,
             Self::Clean => verbs::CLEANED,
             Self::Verify => verbs::VERIFIED,
         }
