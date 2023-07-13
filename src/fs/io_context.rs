@@ -159,22 +159,19 @@ impl IOCtx {
             return Err(Report::new(make_error!(self, PpErrorKind::WriteFile))
                 .attach_printable(format!("cannot write to directory: `{export_file}`")));
         }
-            // Check if the temp file already exists and has the same content
-            if export_file.as_path().exists() {
-                let current_content =
-                    fs::read_to_string(&export_file)
-                        .into_report()
-                        .map_err(|e| {
-                            e.change_context(make_error!(self, PpErrorKind::ReadFile))
-                                .attach_printable(format!(
-                                    "could not read temp file: `{export_file}`"
-                                ))
-                        })?; // if we can't read it, we probably can't write it either
-                if current_content == contents {
-                    log::debug!("temp file already exists with same content, skipping");
-                    return Ok(());
-                }
+        // Check if the temp file already exists and has the same content
+        if export_file.as_path().exists() {
+            let current_content = fs::read_to_string(&export_file)
+                .into_report()
+                .map_err(|e| {
+                    e.change_context(make_error!(self, PpErrorKind::ReadFile))
+                        .attach_printable(format!("could not read temp file: `{export_file}`"))
+                })?; // if we can't read it, we probably can't write it either
+            if current_content == contents {
+                log::debug!("temp file already exists with same content, skipping");
+                return Ok(());
             }
+        }
 
         fs::write(&export_file, contents)
             .into_report()
