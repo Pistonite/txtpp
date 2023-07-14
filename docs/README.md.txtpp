@@ -18,7 +18,7 @@ The full API doc is available on [docs.rs](https://docs.rs/txtpp)
 # Installation
 Install with `cargo`
 ```
-cargo install txtpp
+cargo install txtpp --features cli
 txtpp --help  
 ```
 
