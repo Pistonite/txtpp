@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.2.2
+- New `after` directive to specify dependency explicitly
+
 ## 0.2.1
 - Temp files are no longer re-written if they are already up-to-date in both verify and build mode 
 - New flag `--needed/-N` and corresponding mode `InMemoryBuild` that stores the fresh output in memory and only writes the file if different

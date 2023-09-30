@@ -232,3 +232,8 @@ testit!(tests__examples__temp__no_rewrite, |env| {
     assert_eq!(modified, modified4); // temp file is always checked before re-written
     assert_ne!(modified_out, modified_out4);
 });
+
+testit!(tests__examples__after, |env| {
+    assert!(env.run().is_ok());
+    env.assert_file_eq("example", "example.expected");
+});

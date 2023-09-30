@@ -386,4 +386,18 @@ mod ut {
 
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn test_detect_after() {
+        let line = "  random TXTPP#after stuff\t\t";
+        let expected = Some(Directive::new(
+            "  ",
+            "random ",
+            DirectiveType::After,
+            vec!["stuff".to_string()],
+        ));
+        let actual = Directive::detect_from(line);
+
+        assert_eq!(expected, actual);
+    }
 }

@@ -134,7 +134,7 @@ This will execute the command `echo "hello world"`. The `-` in the last line in 
 ## Execution
 The directives are executed immediately after they are parsed. They may produce an output to be included in the output file and/or have side effects such as creating a temporary file.
 
-If the directive has output (like `include` and `run`), it will be formated as:
+If the directive has output (like `include` and `run`), it will be formatted as:
 - Every line in the output will be prepended with `{WHITESPACES}`, so that the indentation is consistent
     ```
        // TXTPP#run echo 1; echo 2
@@ -159,7 +159,7 @@ If the directive has output (like `include` and `run`), it will be formated as:
 
     ```
 
-Note that normally, you will not be able to connect a directive output to the previous line, since directives always start on its own line. However, you can use `tag` (see [below](#tag-directive)) to achieve this. If there is currently an active `tag` directive  that is listening for output, the output will be sent to the tag instead of the output file, without the indentation. and the directive will produce no output.
+Note that normally, you will not be able to connect a directive output to the previous line, since directives always start on its own line. However, you can use `tag` (see [below](#tag-directive)) to achieve this. If there is currently an active `tag` directive  that is listening for output, the output will be sent to the tag instead of the output file, without the indentation, and the directive will produce no output.
 
 # Directive Specification
 This section contains detailed specification of each directive.
@@ -176,7 +176,20 @@ Single-line only. The argument is `FILE_PATH`
 ```
 TXTPP#include foo.txt
 ```
+## After Directive
+#### USAGE
+This directive is to explicitly specify dependency.
+#### ARGUMENTS
+Single-line only. The argument is `FILE_PATH`
+#### BEHAVIOR
+This directive behaves exactly like `include`, except it only changes the dependency structure and doesn't affect the output.
 
+This can be useful if there are implicit dependencies. For example, a `run` directive could execute a command that depends on a txtpp output.
+#### EXAMPLE
+```
+TXTPP#after foo.txt
+TXTPP#run ./my-script.sh foo.txt
+```
 ## Run Directive
 #### USAGE
 This directive is used to run a command and include the output of the command into the current file.

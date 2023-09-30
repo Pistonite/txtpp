@@ -1,0 +1,3 @@
+In this example, the run directive executes a command that depends on foo. The after directive is used to make sure foo is produced before this file
+hello
+

@@ -218,7 +218,7 @@ impl<'a> Pp<'a> {
         };
 
         let raw_output = match d.directive_type {
-            DirectiveType::Empty => {
+            DirectiveType::Empty | DirectiveType::After => {
                 // do nothing (consume the line)
                 None
             }
@@ -286,7 +286,10 @@ impl<'a> Pp<'a> {
             // never collect deps in execute mode
             return Ok(Some(d));
         }
-        if let DirectiveType::Include = d.directive_type {
+        if matches!(
+            d.directive_type,
+            DirectiveType::Include | DirectiveType::After
+        ) {
             let arg = d.args.first().cloned().unwrap_or_default();
             let include_path = PathBuf::from(&arg);
             // We use join instead of share_base because the dependency might not exist
