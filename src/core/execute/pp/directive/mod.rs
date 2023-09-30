@@ -60,6 +60,8 @@ pub enum DirectiveType {
     Empty,
     /// Include directive, argument is path to a file
     Include,
+    /// After directive, argument is path to a file
+    After,
     /// Run directive, argument is a command
     Run,
     /// Tag directive, argument is a string
@@ -81,6 +83,7 @@ impl TryFrom<&str> for DirectiveType {
             "tag" => Ok(DirectiveType::Tag),
             "temp" => Ok(DirectiveType::Temp),
             "write" => Ok(DirectiveType::Write),
+            "after" => Ok(DirectiveType::After),
             _ => Err(()),
         }
     }
@@ -89,7 +92,10 @@ impl TryFrom<&str> for DirectiveType {
 impl DirectiveType {
     /// Does directive support multi-line arguments
     pub fn supports_multi_line(&self) -> bool {
-        !matches!(self, DirectiveType::Include | DirectiveType::Tag)
+        !matches!(
+            self,
+            DirectiveType::After | DirectiveType::Include | DirectiveType::Tag
+        )
     }
 }
 
@@ -98,6 +104,7 @@ impl Display for DirectiveType {
         match self {
             DirectiveType::Empty => write!(f, ""),
             DirectiveType::Include => write!(f, "include"),
+            DirectiveType::After => write!(f, "after"),
             DirectiveType::Run => write!(f, "run"),
             DirectiveType::Tag => write!(f, "tag"),
             DirectiveType::Temp => write!(f, "temp"),

@@ -16,7 +16,7 @@ readme:
 
 # Pre-commit checks
 check: && readme clean
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --all-targets --all-features -- -D warnings -D clippy::todo
     cargo fmt
     cargo doc
     cargo test
