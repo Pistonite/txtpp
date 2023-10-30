@@ -146,7 +146,7 @@ impl AbsPath {
     }
 
     pub fn trim_txtpp(&self) -> Result<String, PathError> {
-        let p = self.p.trim_txtpp()?;
+        let p = self.p.remove_txtpp()?;
         Ok(path_string_from_base(&self.b, &p))
     }
 }

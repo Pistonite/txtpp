@@ -37,10 +37,7 @@ impl DepManager {
             if self.finished.contains(dependency) {
                 continue;
             }
-            let dependers = self
-                .in_edges
-                .entry(dependency.clone())
-                .or_insert(HashSet::new());
+            let dependers = self.in_edges.entry(dependency.clone()).or_default();
             // add depender -> dependency edge
             if dependers.insert(depender.clone()) {
                 *dependency_count += 1;

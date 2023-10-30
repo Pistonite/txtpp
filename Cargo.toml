@@ -1,6 +1,6 @@
 [package]
 name = "txtpp"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 description = "A simple-to-use general purpose preprocessor for text files."
 repository = "https://github.com/Pistonite/txtpp"
@@ -12,7 +12,7 @@ exclude = [
     "tests/examples/**/*",
     "docs/*",
     ".github/**/*",
-    "Justfile"
+    "Taskfile.yml"
 ]
 
 [dependencies]
@@ -26,6 +26,7 @@ env_logger = "^0.10.0"
 derivative = "^2.2.0"
 
 [features]
+default = ["cli"]
 cli = ["clap"]
 
 [dev-dependencies]
