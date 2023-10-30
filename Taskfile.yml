@@ -1,0 +1,30 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+    - rustup update
+    - cargo install cargo-watch
+  clean:
+    desc: Clean example output
+    cmds:
+    - cargo run -- clean tests/examples docs -r
+  readme:
+    desc: Generate the readme
+    cmds:
+    - cargo run -- docs/README.md
+    - mv docs/README.md README.md
+  dev:
+    desc: Run tests in watch mode
+    cmds:
+    - cargo watch -x test
+  check:
+    desc: Pre-commit checks
+    cmds:
+    - cargo clippy --all-targets --all-features -- -D warnings -D clippy::todo
+    - cargo fmt
+    - cargo doc
+    - cargo test
+    - task: readme
+    - task: clean

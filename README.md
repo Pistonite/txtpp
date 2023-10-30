@@ -1,7 +1,6 @@
 # txtpp
 ![Build Badge](https://img.shields.io/github/actions/workflow/status/Pistonite/txtpp/rust.yml)
 ![Version Badge](https://img.shields.io/crates/v/txtpp)
-![Docs Badge](https://img.shields.io/docsrs/txtpp)
 ![License Badge](https://img.shields.io/github/license/Pistonite/txtpp)
 ![Issue Badge](https://img.shields.io/github/issues/Pistonite/txtpp)
 

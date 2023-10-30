@@ -48,7 +48,7 @@ impl IOCtx {
                 .attach_printable(format!("could not open input file: `{input_path}`"))
             })?;
 
-        let output_path = input_file.as_path_buf().trim_txtpp().map_err(|e| {
+        let output_path = input_file.as_path_buf().remove_txtpp().map_err(|e| {
             e.change_context(Self::make_error_with_kind(
                 input_path.clone(),
                 PpErrorKind::OpenFile,

@@ -1,6 +1,6 @@
 [package]
 name = "txtpp"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 description = "A simple-to-use general purpose preprocessor for text files."
 repository = "https://github.com/Pistonite/txtpp"
@@ -12,20 +12,21 @@ exclude = [
     "tests/examples/**/*",
     "docs/*",
     ".github/**/*",
-    "Justfile"
+    "Taskfile.yml"
 ]
 
 [dependencies]
-which = "^4.4.0"
+which = "^5.0.0"
 error-stack = "^0.3.1"
 termcolor = "^1.2.0"
 threadpool = "^1.8.1"
-clap = { version = "^4.2.4", features = ["cargo", "derive"], optional = true }
+clap = { version = "^4.4.7", features = ["cargo", "derive"], optional = true }
 log = "^0.4.17"
 env_logger = "^0.10.0"
 derivative = "^2.2.0"
 
 [features]
+default = ["cli"]
 cli = ["clap"]
 
 [dev-dependencies]
