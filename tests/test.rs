@@ -234,6 +234,7 @@ testit!(tests__examples__temp__no_rewrite, |env| {
 });
 
 testit!(tests__examples__after, |env| {
+    env.cfg_mut().inputs = vec!["example".to_string()];
     assert!(env.run().is_ok());
     env.assert_file_eq("example", "example.expected");
 });

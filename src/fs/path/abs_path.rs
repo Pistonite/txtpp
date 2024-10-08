@@ -1,7 +1,7 @@
 use crate::error::PathError;
 use crate::fs::normalize_path;
 use derivative::Derivative;
-use error_stack::{IntoReport, Report, Result};
+use error_stack::{Report, Result, ResultExt};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -105,10 +105,9 @@ impl AbsPath {
         if !p.exists() {
             return Err(Report::new(PathError::from(&p)).attach_printable("path does not exist"));
         }
-        p.canonicalize().into_report().map_err(|e| {
-            e.change_context(PathError::from(&p))
-                .attach_printable("cannot resolve path as absolute")
-        })
+        p.canonicalize()
+            .change_context_lazy(|| PathError::from(&p))
+            .attach_printable("cannot convert path to absolute")
     }
 
     /// Resolve a path relative to the current path
@@ -162,10 +161,9 @@ where
     P: AsRef<Path>,
 {
     log::debug!("creating file: {}", p.as_ref().display());
-    fs::File::create(p).into_report().map_err(|e| {
-        e.change_context(PathError::from(p))
-            .attach_printable("cannot create file")
-    })?;
+    fs::File::create(p)
+        .change_context_lazy(|| PathError::from(p))
+        .attach_printable("cannot create file")?;
     Ok(())
 }
 

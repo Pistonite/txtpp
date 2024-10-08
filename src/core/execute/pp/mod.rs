@@ -1,7 +1,7 @@
 use crate::core::{Mode, TagState};
 use crate::error::{PpError, PpErrorKind};
 use crate::fs::{AbsPath, IOCtx, Shell, TxtppPath};
-use error_stack::{IntoReport, Report, Result};
+use error_stack::{Report, Result, ResultExt};
 use std::path::PathBuf;
 
 mod directive;
@@ -244,12 +244,9 @@ impl<'a> Pp<'a> {
                             .attach_printable(format!("could not open include file: `{arg}`"))
                     })?;
                 let output = std::fs::read_to_string(&include_file)
-                    .into_report()
-                    .map_err(|e| {
-                        e.change_context(self.context.make_error(PpErrorKind::Directive))
-                            .attach_printable(format!(
-                                "could not read include file: `{include_file}`"
-                            ))
+                    .change_context_lazy(|| self.context.make_error(PpErrorKind::Directive))
+                    .attach_printable_lazy(|| {
+                        format!("could not read include file: `{include_file}`")
                     })?;
                 log::debug!("include file content: {output:?}");
                 Some(output)
@@ -315,6 +312,10 @@ impl<'a> Pp<'a> {
                 }
                 return Ok(None);
             }
+        }
+        // if we are already collecting deps, don't execute the directive
+        if let PpMode::CollectDeps(_) = self.pp_mode {
+            return Ok(None);
         }
         Ok(Some(d))
     }
