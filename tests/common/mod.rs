@@ -57,6 +57,11 @@ impl ItEnv {
     }
 
     #[inline]
+    pub fn cfg_mut(&mut self) -> &mut Config {
+        &mut self.cfg
+    }
+
+    #[inline]
     pub fn run(&self) -> Result<(), TxtppError> {
         txtpp(self.cfg.clone())
     }

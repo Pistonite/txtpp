@@ -1,11 +1,11 @@
 [package]
 name = "txtpp"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 description = "A simple-to-use general purpose preprocessor for text files."
 repository = "https://github.com/Pistonite/txtpp"
 license = "GPL-3.0"
-authors = ["Pistonight <terrabyte100k@gmail.com>"]
+authors = ["Pistonight <pistonknight@outlook.com>"]
 keywords = ["preprocessor", "tool", "template", "macro", "include"]
 categories = ["development-tools::build-utils", "template-engine"]
 exclude = [
@@ -17,13 +17,13 @@ exclude = [
 
 [dependencies]
 which = "^5.0.0"
-error-stack = "^0.3.1"
-termcolor = "^1.2.0"
-threadpool = "^1.8.1"
+error-stack = "0.5.0"
+termcolor = "1.4.1"
+threadpool = "1.8.1"
 clap = { version = "^4.4.7", features = ["cargo", "derive"], optional = true }
-log = "^0.4.17"
-env_logger = "^0.10.0"
-derivative = "^2.2.0"
+log = "0.4.22"
+env_logger = "0.11.5"
+derivative = "2.2.0"
 
 [features]
 default = ["cli"]

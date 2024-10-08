@@ -1,21 +1,20 @@
 use crate::error::PathError;
 use crate::fs::{AbsPath, Directory, TxtppPath};
-use error_stack::{IntoReport, Result};
+use error_stack::{Result, ResultExt};
 
 pub fn scan_dir(dir: &AbsPath, recursive: bool) -> Result<Directory, PathError> {
     let dir_path = dir.as_path_buf();
-    let entries = dir_path.read_dir().into_report().map_err(|e| {
-        e.change_context(PathError::from(&dir_path))
-            .attach_printable("failed to read directory")
-    })?;
+    let entries = dir_path
+        .read_dir()
+        .change_context_lazy(|| PathError::from(&dir_path))
+        .attach_printable("failed to read directory")?;
 
     let mut directory = Directory::new();
 
     for entry in entries {
-        let entry = entry.into_report().map_err(|e| {
-            e.change_context(PathError::from(&dir_path))
-                .attach_printable("failed to read directory")
-        })?;
+        let entry = entry
+            .change_context_lazy(|| PathError::from(&dir_path))
+            .attach_printable("failed to read directory entry")?;
         let path = entry.path();
 
         if path.is_file() {

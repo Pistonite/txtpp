@@ -1,7 +1,7 @@
 use crate::error::{PpError, PpErrorKind};
 use crate::fs::{normalize_path, AbsPath, GetLineEnding, TxtppPath};
 use crate::Mode;
-use error_stack::{IntoReport, Report, Result};
+use error_stack::{Report, Result, ResultExt};
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Read, Write};
@@ -39,14 +39,10 @@ impl IOCtx {
 
         let r = File::open(input_file)
             .map(BufReader::new)
-            .into_report()
-            .map_err(|e| {
-                e.change_context(Self::make_error_with_kind(
-                    input_path.clone(),
-                    PpErrorKind::OpenFile,
-                ))
-                .attach_printable(format!("could not open input file: `{input_path}`"))
-            })?;
+            .change_context_lazy(|| {
+                Self::make_error_with_kind(input_path.clone(), PpErrorKind::OpenFile)
+            })
+            .attach_printable_lazy(|| format!("could not open input file: `{input_path}`"))?;
 
         let output_path = input_file.as_path_buf().remove_txtpp().map_err(|e| {
             e.change_context(Self::make_error_with_kind(
@@ -84,10 +80,8 @@ impl IOCtx {
     /// Get the next line from the input file.
     pub fn next_line(&mut self) -> Option<Result<String, PpError>> {
         let line = self.input.next().map(|line| {
-            line.into_report().map_err(|e| {
-                e.change_context(self.make_error(PpErrorKind::ReadFile))
-                    .attach_printable("cannot read next line")
-            })
+            line.change_context_lazy(|| make_error!(self, PpErrorKind::ReadFile))
+                .attach_printable("cannot read next line")
         });
         if line.is_some() {
             self.cur_line += 1;
@@ -101,12 +95,10 @@ impl IOCtx {
     /// output directly as is.
     pub fn write_output(&mut self, output: &str) -> Result<(), PpError> {
         match &mut self.out {
-            CtxOut::Build { path, out } => {
-                out.write_all(output.as_bytes()).into_report().map_err(|e| {
-                    e.change_context(make_error!(self, PpErrorKind::WriteFile))
-                        .attach_printable(format!("cannot write to `{}`", path.display()))
-                })
-            }
+            CtxOut::Build { path, out } => out
+                .write_all(output.as_bytes())
+                .change_context_lazy(|| make_error!(self, PpErrorKind::WriteFile))
+                .attach_printable_lazy(|| format!("cannot write to `{}`", path.display())),
             CtxOut::InMemoryBuild { out, .. } => {
                 out.push_str(output);
                 Ok(())
@@ -121,10 +113,9 @@ impl IOCtx {
                     return Err(make_verify_report!(self, path));
                 }
                 let mut buf = vec![0; output.len()];
-                out.read_exact(&mut buf).into_report().map_err(|e| {
-                    e.change_context(make_error!(self, PpErrorKind::ReadFile))
-                        .attach_printable("cannot read from output file.")
-                })?;
+                out.read_exact(&mut buf)
+                    .change_context_lazy(|| make_error!(self, PpErrorKind::ReadFile))
+                    .attach_printable("cannot read from output file.")?;
                 if buf != output.as_bytes() {
                     let string = String::from_utf8_lossy(&buf);
                     log::debug!("content different, actual: {string:?}");
@@ -142,10 +133,11 @@ impl IOCtx {
 
         if let CtxOut::Clean { .. } = self.out {
             if let Ok(export_file) = self.work_dir.try_resolve(&p, false) {
-                fs::remove_file(&export_file).into_report().map_err(|e| {
-                    e.change_context(make_error!(self, PpErrorKind::DeleteFile))
-                        .attach_printable(format!("could not remove temp file: `{export_file}`"))
-                })?;
+                fs::remove_file(&export_file)
+                    .change_context_lazy(|| make_error!(self, PpErrorKind::DeleteFile))
+                    .attach_printable_lazy(|| {
+                        format!("could not remove temp file: `{export_file}`")
+                    })?;
             }
             return Ok(());
         }
@@ -162,11 +154,10 @@ impl IOCtx {
         // Check if the temp file already exists and has the same content
         if export_file.as_path().exists() {
             let current_content = fs::read_to_string(&export_file)
-                .into_report()
-                .map_err(|e| {
-                    e.change_context(make_error!(self, PpErrorKind::ReadFile))
-                        .attach_printable(format!("could not read temp file: `{export_file}`"))
-                })?; // if we can't read it, we probably can't write it either
+                .change_context_lazy(|| make_error!(self, PpErrorKind::ReadFile))
+                .attach_printable_lazy(|| {
+                    format!("could not read existing temp file: `{export_file}`")
+                })?; // early return because if we can't read it, we probably can't write it either
             if current_content == contents {
                 log::debug!("temp file already exists with same content, skipping");
                 return Ok(());
@@ -174,41 +165,34 @@ impl IOCtx {
         }
 
         fs::write(&export_file, contents)
-            .into_report()
-            .map_err(|e| {
-                e.change_context(make_error!(self, PpErrorKind::WriteFile))
-                    .attach_printable(format!("could not write temp file: `{export_file}`"))
-            })
+            .change_context_lazy(|| make_error!(self, PpErrorKind::WriteFile))
+            .attach_printable_lazy(|| format!("could not write temp file: `{export_file}`"))
     }
 
     /// Finish
     pub fn done(mut self) -> Result<(), PpError> {
         match &mut self.out {
-            CtxOut::Build { path, out } => out.flush().into_report().map_err(|e| {
-                e.change_context(make_error!(self, PpErrorKind::WriteFile))
-                    .attach_printable(format!("cannot write to `{}`", path.display()))
-            }),
+            CtxOut::Build { path, out } => out
+                .flush()
+                .change_context_lazy(|| make_error!(self, PpErrorKind::WriteFile))
+                .attach_printable_lazy(|| format!("could not write to `{}`", path.display())),
             CtxOut::InMemoryBuild { path, out } => {
                 if path.as_path().exists() {
-                    let current_content = fs::read_to_string(&path).into_report().map_err(|e| {
-                        e.change_context(make_error!(self, PpErrorKind::ReadFile))
-                            .attach_printable(format!(
-                                "could not read existing output file: `{path}`",
-                                path = path.display()
-                            ))
-                    })?; // if we can't read it, we probably can't write it either
+                    let current_content = fs::read_to_string(path.as_path())
+                        .change_context_lazy(|| make_error!(self, PpErrorKind::ReadFile))
+                        .attach_printable_lazy(|| {
+                            format!("could not read existing output file: `{}`", path.display())
+                        })?; // early return because if we can't read it, we probably can't write it either
                     if &current_content == out {
                         log::debug!("output file already exists with same content, skipping");
                         return Ok(());
                     }
                 }
-                fs::write(&path, out).into_report().map_err(|e| {
-                    e.change_context(make_error!(self, PpErrorKind::WriteFile))
-                        .attach_printable(format!(
-                            "could not write output file: `{path}`",
-                            path = path.display()
-                        ))
-                })
+                fs::write(path.as_path(), out)
+                    .change_context_lazy(|| make_error!(self, PpErrorKind::WriteFile))
+                    .attach_printable_lazy(|| {
+                        format!("could not write output file: `{}`", path.display())
+                    })
             }
             CtxOut::Clean { .. } => Ok(()), // do nothing
             CtxOut::Verify { path, rem, .. } => {
@@ -233,6 +217,7 @@ impl IOCtx {
     }
 }
 
+/// Macro needed because of borrowing constraints.
 macro_rules! make_error {
     ($self:ident, $kind:expr) => {
         PpError {
@@ -297,16 +282,14 @@ impl CtxOut {
         match mode {
             Mode::Build => {
                 let out = File::create(output_path)
-                    .into_report()
-                    .map_err(|e| {
-                        e.change_context(IOCtx::make_error_with_kind(
-                            input_path.to_string(),
-                            PpErrorKind::OpenFile,
-                        ))
-                        .attach_printable(format!(
-                            "could not open output file: `{}`",
+                    .change_context_lazy(|| {
+                        IOCtx::make_error_with_kind(input_path.to_string(), PpErrorKind::OpenFile)
+                    })
+                    .attach_printable_lazy(|| {
+                        format!(
+                            "could not create output file: `{}`",
                             normalize_path(&output_path.as_ref().display().to_string())
-                        ))
+                        )
                     })
                     .map(BufWriter::new)?;
                 Ok(Self::Build {
@@ -321,16 +304,19 @@ impl CtxOut {
             Mode::Clean => {
                 let p = output_path.as_ref();
                 if p.exists() {
-                    fs::remove_file(p).into_report().map_err(|e| {
-                        e.change_context(IOCtx::make_error_with_kind(
-                            input_path.to_string(),
-                            PpErrorKind::DeleteFile,
-                        ))
-                        .attach_printable(format!(
-                            "could not remove file: `{}`",
-                            normalize_path(&p.display().to_string())
-                        ))
-                    })?;
+                    fs::remove_file(p)
+                        .change_context_lazy(|| {
+                            IOCtx::make_error_with_kind(
+                                input_path.to_string(),
+                                PpErrorKind::DeleteFile,
+                            )
+                        })
+                        .attach_printable_lazy(|| {
+                            format!(
+                                "could not remove file: `{}`",
+                                normalize_path(&p.display().to_string())
+                            )
+                        })?;
                 }
                 Ok(Self::Clean)
             }
@@ -347,30 +333,26 @@ impl CtxOut {
                     )));
                 }
                 let len = fs::metadata(p)
-                    .into_report()
-                    .map_err(|e| {
-                        e.change_context(IOCtx::make_error_with_kind(
-                            input_path.to_string(),
-                            PpErrorKind::OpenFile,
-                        ))
-                        .attach_printable(format!(
+                    .change_context_lazy(|| {
+                        IOCtx::make_error_with_kind(input_path.to_string(), PpErrorKind::OpenFile)
+                    })
+                    .attach_printable_lazy(|| {
+                        format!(
                             "could not get metadata for output file: `{}`",
-                            p.display()
-                        ))
+                            normalize_path(&p.display().to_string())
+                        )
                     })?
                     .len();
                 log::debug!("found output to verify, file size: {}", len);
                 let out = File::open(output_path)
-                    .into_report()
-                    .map_err(|e| {
-                        e.change_context(IOCtx::make_error_with_kind(
-                            input_path.to_string(),
-                            PpErrorKind::OpenFile,
-                        ))
-                        .attach_printable(format!(
+                    .change_context_lazy(|| {
+                        IOCtx::make_error_with_kind(input_path.to_string(), PpErrorKind::OpenFile)
+                    })
+                    .attach_printable_lazy(|| {
+                        format!(
                             "could not open output file: `{}`",
                             normalize_path(&p.display().to_string())
-                        ))
+                        )
                     })
                     .map(BufReader::new)?;
                 Ok(Self::Verify {

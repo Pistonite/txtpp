@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 0.2.4
+- Fixed bug where `run` directives still executed when dependency is not built yet
+
 ## 0.2.2
 - New `after` directive to specify dependency explicitly
 

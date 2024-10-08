@@ -1,7 +1,7 @@
 //! Utilities for running shell commands
 
 use super::path::AbsPath;
-use error_stack::{IntoReport, Report, Result};
+use error_stack::{Report, Result, ResultExt};
 use std::error;
 use std::fmt::{Display, Formatter};
 use std::path::Path;
@@ -80,13 +80,9 @@ impl Shell {
             .arg(command)
             .env(TXTPP_FILE, file)
             .output()
-            .into_report()
-            .map_err(|e| {
-                e.change_context(ShellError::ExecuteError)
-                    .attach_printable(format!(
-                        "Failed to execute `{}` with shell `{}`",
-                        command, self
-                    ))
+            .change_context(ShellError::ExecuteError)
+            .attach_printable_lazy(|| {
+                format!("Failed to execute `{}` with shell `{}`", command, self)
             })?;
         if result.status.success() {
             let output = String::from_utf8_lossy(&result.stdout).to_string();
@@ -112,13 +108,10 @@ impl Shell {
 fn resolve_shell(exe: &str) -> Result<AbsPath, ShellError> {
     let p = which(exe).unwrap_or_else(|_| Path::new(exe).to_path_buf());
 
-    let p = p.canonicalize().into_report().map_err(|e| {
-        e.change_context(ShellError::ResolveError)
-            .attach_printable(format!(
-                "could not resolve shell executable: {}",
-                p.display()
-            ))
-    })?;
+    let p = p
+        .canonicalize()
+        .change_context(ShellError::ResolveError)
+        .attach_printable_lazy(|| format!("could not resolve shell executable: {}", p.display()))?;
 
     let path = p.display().to_string();
 

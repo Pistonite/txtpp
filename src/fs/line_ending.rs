@@ -2,7 +2,7 @@
 
 use crate::error::PathError;
 use crate::fs::normalize_path;
-use error_stack::{IntoReport, Result};
+use error_stack::{Result, ResultExt};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -27,13 +27,12 @@ where
         let len = File::open(self)
             .map(BufReader::new)
             .and_then(|mut r| r.read_until(b'\n', &mut buf))
-            .into_report()
-            .map_err(|e| {
-                e.change_context(PathError::from(self))
-                    .attach_printable(format!(
-                        "Failed to get line ending for file: {}",
-                        normalize_path(&self.as_ref().display().to_string())
-                    ))
+            .change_context_lazy(|| PathError::from(self))
+            .attach_printable_lazy(|| {
+                format!(
+                    "Failed to get line ending for file: {}",
+                    normalize_path(&self.as_ref().display().to_string())
+                )
             })?;
         Ok(get_line_ending_from_buf(&buf, len))
     }
