@@ -5,7 +5,7 @@ tasks:
     desc: Install dependencies
     cmds:
     - rustup update
-    - cargo install cargo-watch
+    - cargo install watchexec
   clean:
     desc: Clean example output
     cmds:
@@ -18,7 +18,7 @@ tasks:
   dev:
     desc: Run tests in watch mode
     cmds:
-    - cargo watch -x test
+    - watchexec cargo test
   check:
     desc: Pre-commit checks
     cmds:

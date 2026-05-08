@@ -10,7 +10,7 @@ pub struct PpError {
     pub file: String,
     pub line: usize,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum PpErrorKind {
     OpenFile,
     ReadFile,
@@ -19,6 +19,19 @@ pub enum PpErrorKind {
     VerifyOutput,
     Directive,
     Other,
+}
+impl PpErrorKind {
+    pub fn message(self) -> &'static str {
+        match self {
+            PpErrorKind::OpenFile => "could not open file",
+            PpErrorKind::ReadFile => "could not read file",
+            PpErrorKind::WriteFile => "could not write file",
+            PpErrorKind::DeleteFile => "could not remove file",
+            PpErrorKind::VerifyOutput => "failed to verify output file",
+            PpErrorKind::Directive => "error executing directive",
+            PpErrorKind::Other => "internal error",
+        }
+    }
 }
 
 impl fmt::Display for PpError {
