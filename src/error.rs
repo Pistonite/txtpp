@@ -3,21 +3,6 @@
 use std::error;
 use std::fmt;
 
-/// Top level error
-#[derive(Debug)]
-pub struct TxtppError;
-
-impl fmt::Display for TxtppError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Txtpp was unsuccessful! There might be error traces below."
-        )
-    }
-}
-
-impl error::Error for TxtppError {}
-
 /// Preprocessor error
 #[derive(Debug)]
 pub struct PpError {

@@ -1,11 +1,10 @@
 //! Common utils for integration tests
 
 use copy_dir::copy_dir;
-use error_stack::Result;
 use murmur3::murmur3_32;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
-use txtpp::{error::TxtppError, *};
+use txtpp::*;
 
 pub struct ItEnv {
     pub cfg: Config,
@@ -62,7 +61,7 @@ impl ItEnv {
     }
 
     #[inline]
-    pub fn run(&self) -> Result<(), TxtppError> {
+    pub fn run(&self) -> cu::Result<()> {
         txtpp(self.cfg.clone())
     }
 
