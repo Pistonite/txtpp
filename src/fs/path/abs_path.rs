@@ -1,9 +1,9 @@
-use crate::error::PathError;
 use crate::fs::normalize_path;
 use derivative::Derivative;
-use error_stack::{Report, Result, ResultExt};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use cu::pre::*;
 
 use super::TxtppPath;
 
@@ -78,7 +78,7 @@ impl AbsPath {
     ///
     /// If the path is relative, it will be made absolute by
     /// using [`canonicalize`](std::path::Path::canonicalize)
-    pub fn create_base(p: PathBuf) -> Result<Self, PathError> {
+    pub fn create_base(p: PathBuf) -> cu::Result<Self> {
         let p_abs = Self::make_abs(p)?;
         Ok(Self {
             b: p_abs.clone(),
@@ -94,20 +94,31 @@ impl AbsPath {
     ///
     /// If the path is relative, it will be made absolute by
     /// using [`canonicalize`](std::path::Path::canonicalize)
-    pub fn share_base(&self, p: PathBuf) -> Result<Self, PathError> {
+    pub fn share_base(&self, p: PathBuf) -> cu::Result<Self> {
         Ok(Self {
             b: self.b.clone(),
             p: Self::make_abs(p)?,
         })
     }
 
-    fn make_abs(p: PathBuf) -> Result<PathBuf, PathError> {
+    fn make_abs(p: PathBuf) -> cu::Result<PathBuf> {
+        // TODO: --rewrite: this should just be p.normalize_exists()
         if !p.exists() {
-            return Err(Report::new(PathError::from(&p)).attach_printable("path does not exist"));
+            cu::bail!(
+                "path does not exist: '{}'",
+                normalize_path(&p.display().to_string())
+            );
         }
-        p.canonicalize()
-            .change_context_lazy(|| PathError::from(&p))
-            .attach_printable("cannot convert path to absolute")
+        match p.canonicalize() {
+            Ok(p) => Ok(p),
+            Err(e) => {
+                cu::rethrow!(
+                    e,
+                    "connot convert path to absolute: '{}'",
+                    normalize_path(&p.display().to_string())
+                );
+            }
+        }
     }
 
     /// Resolve a path relative to the current path
@@ -115,7 +126,7 @@ impl AbsPath {
     /// if `ext` is absolute, return `ext`, otherwise join `ext` with the current path.
     ///
     /// If create is `true`, the path will be created if it doesn't exist. Otherwise the path must exist.
-    pub fn try_resolve<P>(&self, ext: &P, create: bool) -> Result<Self, PathError>
+    pub fn try_resolve<P>(&self, ext: &P, create: bool) -> cu::Result<Self>
     where
         P: AsRef<Path>,
     {
@@ -132,19 +143,12 @@ impl AbsPath {
     }
 
     /// Get the parent
-    pub fn parent(&self) -> Result<Self, PathError> {
-        let p_parent_abs = match self.p.parent() {
-            Some(p) => p,
-            None => {
-                return Err(Report::new(PathError::from(self))
-                    .attach_printable("cannot get parent directory"))
-            }
-        };
-
-        self.share_base(p_parent_abs.to_path_buf())
+    pub fn parent(&self) -> cu::Result<Self> {
+        let p_parent_abs = self.p.parent_abs()?;
+        self.share_base(p_parent_abs)
     }
 
-    pub fn trim_txtpp(&self) -> Result<String, PathError> {
+    pub fn trim_txtpp(&self) -> cu::Result<String> {
         let p = self.p.remove_txtpp()?;
         Ok(path_string_from_base(&self.b, &p))
     }
@@ -156,14 +160,17 @@ impl std::fmt::Display for AbsPath {
     }
 }
 
-fn create_file<P>(p: &P) -> Result<(), PathError>
+fn create_file<P>(p: &P) -> cu::Result<()>
 where
     P: AsRef<Path>,
 {
+    // TODO: --rewrite: this should just be cu::fs::write with empty content?
     cu::debug!("creating file: {}", p.as_ref().display());
-    fs::File::create(p)
-        .change_context_lazy(|| PathError::from(p))
-        .attach_printable("cannot create file")?;
+    cu::check!(
+        fs::File::create(p),
+        "cannot create file: '{}'",
+        normalize_path(&p.as_ref().to_string_lossy())
+    )?;
     Ok(())
 }
 

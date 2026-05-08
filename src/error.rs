@@ -2,7 +2,6 @@
 
 use std::error;
 use std::fmt;
-use std::path::Path;
 
 /// Top level error
 #[derive(Debug)]
@@ -53,31 +52,3 @@ impl fmt::Display for PpError {
 }
 
 impl error::Error for PpError {}
-
-use crate::fs::normalize_path;
-
-/// Error related to paths
-#[derive(Debug)]
-pub struct PathError {
-    /// The path that caused the error, as a string
-    pub path: String,
-}
-
-impl<P> From<&P> for PathError
-where
-    P: AsRef<Path>,
-{
-    fn from(p: &P) -> Self {
-        Self {
-            path: p.as_ref().display().to_string(),
-        }
-    }
-}
-
-impl fmt::Display for PathError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error in path `{}`", normalize_path(&self.path))
-    }
-}
-
-impl error::Error for PathError {}

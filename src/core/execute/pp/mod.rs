@@ -1,7 +1,7 @@
 use crate::core::{Mode, TagState};
 use crate::error::{PpError, PpErrorKind};
 use crate::fs::{AbsPath, IOCtx, Shell, TxtppPath};
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{IntoReportCompat, Report, Result, ResultExt};
 use std::path::PathBuf;
 
 mod directive;
@@ -228,7 +228,10 @@ impl<'a> Pp<'a> {
                     .shell
                     .run(&command, &self.context.work_dir, &self.context.input_path)
                     .map_err(|e| {
-                        e.change_context(self.context.make_error(PpErrorKind::Directive))
+                        Err::<(), _>(e)
+                            .into_report()
+                            .unwrap_err()
+                            .change_context(self.context.make_error(PpErrorKind::Directive))
                             .attach_printable(format!("failed to run command: `{command}`."))
                     })?;
                 Some(output)
@@ -240,7 +243,10 @@ impl<'a> Pp<'a> {
                     .work_dir
                     .try_resolve(&arg, false)
                     .map_err(|e| {
-                        e.change_context(self.context.make_error(PpErrorKind::Directive))
+                        Err::<(), _>(e)
+                            .into_report()
+                            .unwrap_err()
+                            .change_context(self.context.make_error(PpErrorKind::Directive))
                             .attach_printable(format!("could not open include file: `{arg}`"))
                     })?;
                 let output = std::fs::read_to_string(&include_file)
@@ -295,7 +301,10 @@ impl<'a> Pp<'a> {
             if let Some(x) = include_path.get_txtpp_file() {
                 cu::debug!("found dependency: {}", x.display());
                 let p_abs = self.context.work_dir.share_base(x).map_err(|e| {
-                    e.change_context(self.context.make_error(PpErrorKind::Directive))
+                    Err::<(), _>(e)
+                        .into_report()
+                        .unwrap_err()
+                        .change_context(self.context.make_error(PpErrorKind::Directive))
                         .attach_printable(format!(
                             "could not resolve include file: `{}`",
                             include_path.display()

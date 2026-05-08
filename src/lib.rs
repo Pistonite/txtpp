@@ -71,7 +71,7 @@
 //! ```
 //!
 mod core;
-pub use crate::core::{txtpp, Config, Mode, Txtpp, Verbosity};
+pub use crate::core::{Config, Mode, Txtpp, Verbosity, txtpp};
 pub mod error;
 mod fs;
 pub use crate::fs::TXTPP_FILE;

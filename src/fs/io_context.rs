@@ -1,7 +1,7 @@
-use crate::error::{PpError, PpErrorKind};
-use crate::fs::{normalize_path, AbsPath, GetLineEnding, TxtppPath};
 use crate::Mode;
-use error_stack::{Report, Result, ResultExt};
+use crate::error::{PpError, PpErrorKind};
+use crate::fs::{AbsPath, GetLineEnding, TxtppPath, normalize_path};
+use error_stack::{IntoReportCompat, Report, Result, ResultExt};
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Read, Write};
@@ -28,13 +28,16 @@ impl IOCtx {
         let input_path = input_file.to_string();
 
         let line_ending = input_file.get_line_ending().map_err(|e| {
-            e.change_context(Self::make_error_with_kind(
-                input_path.clone(),
-                PpErrorKind::OpenFile,
-            ))
-            .attach_printable(format!(
-                "could not read line ending for input file: `{input_path}`"
-            ))
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(Self::make_error_with_kind(
+                    input_path.clone(),
+                    PpErrorKind::OpenFile,
+                ))
+                .attach_printable(format!(
+                    "could not read line ending for input file: `{input_path}`"
+                ))
         })?;
 
         let r = File::open(input_file)
@@ -45,26 +48,32 @@ impl IOCtx {
             .attach_printable_lazy(|| format!("could not open input file: `{input_path}`"))?;
 
         let output_path = input_file.as_path_buf().remove_txtpp().map_err(|e| {
-            e.change_context(Self::make_error_with_kind(
-                input_path.clone(),
-                PpErrorKind::OpenFile,
-            ))
-            .attach_printable(format!(
-                "could not resolve output path for input file: `{input_path}`"
-            ))
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(Self::make_error_with_kind(
+                    input_path.clone(),
+                    PpErrorKind::OpenFile,
+                ))
+                .attach_printable(format!(
+                    "could not resolve output path for input file: `{input_path}`"
+                ))
         })?;
 
         let out = CtxOut::new(mode, &input_path, &output_path)?;
 
         let work_dir = input_file.parent().map_err(|e| {
-            e.change_context(Self::make_error_with_kind(
-                input_path.clone(),
-                PpErrorKind::OpenFile,
-            ))
-            .attach_printable(format!(
-                "cannot get working directory for input file: {}",
-                input_file
-            ))
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(Self::make_error_with_kind(
+                    input_path.clone(),
+                    PpErrorKind::OpenFile,
+                ))
+                .attach_printable(format!(
+                    "cannot get working directory for input file: {}",
+                    input_file
+                ))
         })?;
 
         Ok(Self {
@@ -144,7 +153,10 @@ impl IOCtx {
 
         cu::debug!("writing temp file: {}", p.display());
         let export_file = self.work_dir.try_resolve(&p, true).map_err(|e| {
-            e.change_context(make_error!(self, PpErrorKind::WriteFile))
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(make_error!(self, PpErrorKind::WriteFile))
                 .attach_printable(format!("could not resolve temp file: `{}`", p.display()))
         })?;
         if export_file.as_path().is_dir() {

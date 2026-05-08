@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use std::env;
 use std::process::ExitCode;
-use txtpp::{txtpp, Config, Mode, Verbosity, TXTPP_FILE};
+use txtpp::{Config, Mode, TXTPP_FILE, Verbosity, txtpp};
 
 /// txtpp CLI
 ///

@@ -1,11 +1,11 @@
-use crate::core::{print_dep_map, verbs, DepManager, Progress};
-use crate::error::{PathError, PpError, TxtppError};
+use crate::core::{DepManager, Progress, print_dep_map, verbs};
+use crate::error::{PpError, TxtppError};
 use crate::fs::{AbsPath, Directory, Shell};
-use error_stack::{Report, Result};
+use error_stack::{IntoReportCompat, Report, Result};
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
-use std::sync::Arc;
 use std::time::Instant;
 use termcolor::Color;
 use threadpool::Builder;
@@ -15,7 +15,7 @@ mod config;
 pub use config::*;
 
 mod pp;
-use pp::{preprocess, PpResult};
+use pp::{PpResult, preprocess};
 mod resolve_inputs;
 use resolve_inputs::resolve_inputs;
 mod scan_dir;
@@ -68,10 +68,14 @@ impl Txtpp {
         cu::debug!("using config: {:?}", config);
 
         let shell = Arc::new(Shell::new(&config.shell_cmd).map_err(|e| {
-            e.change_context(TxtppError).attach_printable(format!(
-                "cannot parse shell command: {cmd}",
-                cmd = config.shell_cmd
-            ))
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(TxtppError)
+                .attach_printable(format!(
+                    "cannot parse shell command: {cmd}",
+                    cmd = config.shell_cmd
+                ))
         })?);
 
         let progress = Progress::new(config.verbosity.clone());
@@ -113,12 +117,18 @@ impl Txtpp {
         );
 
         let base_abs_path = AbsPath::create_base(self.config.base_dir.clone()).map_err(|e| {
-            e.change_context(TxtppError)
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(TxtppError)
                 .attach_printable("cannot resolve base directory")
         })?;
         let inputs: Directory =
             resolve_inputs(&self.config.inputs, &base_abs_path).map_err(|e| {
-                e.change_context(TxtppError)
+                Err::<(), _>(e)
+                    .into_report()
+                    .unwrap_err()
+                    .change_context(TxtppError)
                     .attach_printable("cannot resolve inputs")
             })?;
         let mut dep_mgr = DepManager::new();
@@ -159,7 +169,10 @@ impl Txtpp {
                     cu::info!("scanning directory done");
                     let directory = result.map_err(|e| {
                         self.progress.add_done_quiet(1);
-                        e.change_context(TxtppError)
+                        Err::<(), _>(e)
+                            .into_report()
+                            .unwrap_err()
+                            .change_context(TxtppError)
                             .attach_printable("cannot scan directory")
                     })?;
                     let _ = self.progress.add_total(directory.subdirs.len());
@@ -191,7 +204,10 @@ impl Txtpp {
                         PpResult::Ok(input) => {
                             cu::info!("file {input} done");
                             let file_target = input.trim_txtpp().map_err(|e| {
-                                e.change_context(TxtppError)
+                                Err::<(), _>(e)
+                                    .into_report()
+                                    .unwrap_err()
+                                    .change_context(TxtppError)
                                     .attach_printable("cannot trim txtpp extension")
                             })?;
                             let _ = self.progress.print_status(
@@ -264,7 +280,10 @@ impl Txtpp {
 
         let _ = self.progress.add_total(1);
         let file_target = file.trim_txtpp().map_err(|e| {
-            e.change_context(TxtppError)
+            Err::<(), _>(e)
+                .into_report()
+                .unwrap_err()
+                .change_context(TxtppError)
                 .attach_printable("cannot trim txtpp extension")
         })?;
         let _ = self.progress.print_status(
@@ -316,6 +335,6 @@ impl Drop for Txtpp {
 }
 
 enum TaskResult {
-    ScanDir(Result<Directory, PathError>),
+    ScanDir(cu::Result<Directory>),
     Preprocess(Result<PpResult, PpError>),
 }

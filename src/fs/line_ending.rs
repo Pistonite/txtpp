@@ -1,10 +1,7 @@
 //! Wrapper to perform file system operations
 
-use crate::error::PathError;
 use crate::fs::normalize_path;
-use error_stack::{Result, ResultExt};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::BufRead;
 use std::path::Path;
 
 pub const CRLF: &str = "\r\n";
@@ -15,25 +12,18 @@ pub const OS_LINE_ENDING: &str = CRLF;
 pub const OS_LINE_ENDING: &str = LF;
 
 pub trait GetLineEnding {
-    fn get_line_ending(&self) -> Result<&'static str, PathError>;
+    fn get_line_ending(&self) -> cu::Result<&'static str>;
 }
 
 impl<P> GetLineEnding for P
 where
     P: AsRef<Path>,
 {
-    fn get_line_ending(&self) -> Result<&'static str, PathError> {
+    #[cu::context("failed to get line ending for file: '{}'", normalize_path(&self.as_ref().to_string_lossy()))]
+    fn get_line_ending(&self) -> cu::Result<&'static str> {
         let mut buf = vec![];
-        let len = File::open(self)
-            .map(BufReader::new)
-            .and_then(|mut r| r.read_until(b'\n', &mut buf))
-            .change_context_lazy(|| PathError::from(self))
-            .attach_printable_lazy(|| {
-                format!(
-                    "Failed to get line ending for file: {}",
-                    normalize_path(&self.as_ref().display().to_string())
-                )
-            })?;
+        let mut reader = cu::fs::reader(self.as_ref())?;
+        let len = reader.read_until(b'\n', &mut buf)?;
         Ok(get_line_ending_from_buf(&buf, len))
     }
 }
@@ -50,11 +40,7 @@ fn get_line_ending_from_buf(buf: &[u8], len: usize) -> &'static str {
         }
         _ => {
             if buf[len - 1] == b'\n' {
-                if buf[len - 2] == b'\r' {
-                    CRLF
-                } else {
-                    LF
-                }
+                if buf[len - 2] == b'\r' { CRLF } else { LF }
             } else {
                 OS_LINE_ENDING
             }

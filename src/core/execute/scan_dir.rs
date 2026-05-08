@@ -1,20 +1,23 @@
-use crate::error::PathError;
-use crate::fs::{AbsPath, Directory, TxtppPath};
-use error_stack::{Result, ResultExt};
+use cu::pre::*;
 
-pub fn scan_dir(dir: &AbsPath, recursive: bool) -> Result<Directory, PathError> {
+use crate::fs::{AbsPath, Directory, TxtppPath, normalize_path};
+
+pub fn scan_dir(dir: &AbsPath, recursive: bool) -> cu::Result<Directory> {
     let dir_path = dir.as_path_buf();
-    let entries = dir_path
-        .read_dir()
-        .change_context_lazy(|| PathError::from(&dir_path))
-        .attach_printable("failed to read directory")?;
+    let entries = cu::check!(
+        dir_path.read_dir(),
+        "failed to read directory: '{}'",
+        normalize_path(&dir_path.to_string_lossy())
+    )?;
 
     let mut directory = Directory::new();
 
     for entry in entries {
-        let entry = entry
-            .change_context_lazy(|| PathError::from(&dir_path))
-            .attach_printable("failed to read directory entry")?;
+        let entry = cu::check!(
+            entry,
+            "failed to read directory entry: '{}'",
+            normalize_path(&dir_path.to_string_lossy())
+        )?;
         let path = entry.path();
 
         if path.is_file() {
