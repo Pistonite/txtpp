@@ -6,7 +6,6 @@ use std::error;
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::process::Command;
-use which::which;
 
 /// Name of the environment variable set for subcommands for the current file being processed
 pub const TXTPP_FILE: &str = "TXTPP_FILE";
@@ -106,7 +105,7 @@ impl Shell {
 }
 
 fn resolve_shell(exe: &str) -> Result<AbsPath, ShellError> {
-    let p = which(exe).unwrap_or_else(|_| Path::new(exe).to_path_buf());
+    let p = cu::which(exe).unwrap_or_else(|_| Path::new(exe).to_path_buf());
 
     let p = p
         .canonicalize()
