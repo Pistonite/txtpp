@@ -169,7 +169,7 @@ fn main() -> ExitCode {
     env_logger::init();
     let args = Cli::parse();
 
-    log::debug!("{:?}", args);
+    cu::debug!("{:?}", args);
     let mut config = Config::default();
     args.apply_to(&mut config);
 

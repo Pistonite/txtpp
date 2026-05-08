@@ -105,11 +105,11 @@ impl IOCtx {
             }
             CtxOut::Clean { .. } => Ok(()), // do nothing
             CtxOut::Verify { path, out, rem } => {
-                log::debug!("verifying content: {output:?}");
+                cu::debug!("verifying content: {output:?}");
                 // len is the length in bytes
                 let len = output.len() as u64;
                 if *rem < len {
-                    log::debug!("not enough content to verify: need {len}, remaining {rem}");
+                    cu::debug!("not enough content to verify: need {len}, remaining {rem}");
                     return Err(make_verify_report!(self, path));
                 }
                 let mut buf = vec![0; output.len()];
@@ -118,7 +118,7 @@ impl IOCtx {
                     .attach_printable("cannot read from output file.")?;
                 if buf != output.as_bytes() {
                     let string = String::from_utf8_lossy(&buf);
-                    log::debug!("content different, actual: {string:?}");
+                    cu::debug!("content different, actual: {string:?}");
                     return Err(make_verify_report!(self, path));
                 }
                 *rem -= len;
@@ -142,7 +142,7 @@ impl IOCtx {
             return Ok(());
         }
 
-        log::debug!("writing temp file: {}", p.display());
+        cu::debug!("writing temp file: {}", p.display());
         let export_file = self.work_dir.try_resolve(&p, true).map_err(|e| {
             e.change_context(make_error!(self, PpErrorKind::WriteFile))
                 .attach_printable(format!("could not resolve temp file: `{}`", p.display()))
@@ -159,7 +159,7 @@ impl IOCtx {
                     format!("could not read existing temp file: `{export_file}`")
                 })?; // early return because if we can't read it, we probably can't write it either
             if current_content == contents {
-                log::debug!("temp file already exists with same content, skipping");
+                cu::debug!("temp file already exists with same content, skipping");
                 return Ok(());
             }
         }
@@ -184,7 +184,7 @@ impl IOCtx {
                             format!("could not read existing output file: `{}`", path.display())
                         })?; // early return because if we can't read it, we probably can't write it either
                     if &current_content == out {
-                        log::debug!("output file already exists with same content, skipping");
+                        cu::debug!("output file already exists with same content, skipping");
                         return Ok(());
                     }
                 }
@@ -343,7 +343,7 @@ impl CtxOut {
                         )
                     })?
                     .len();
-                log::debug!("found output to verify, file size: {}", len);
+                cu::debug!("found output to verify, file size: {}", len);
                 let out = File::open(output_path)
                     .change_context_lazy(|| {
                         IOCtx::make_error_with_kind(input_path.to_string(), PpErrorKind::OpenFile)

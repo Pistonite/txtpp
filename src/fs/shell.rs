@@ -72,7 +72,7 @@ impl Shell {
 
     /// Run the shell with the given argument in the directory. Return the stdout.
     pub fn run(&self, command: &str, work_dir: &AbsPath, file: &str) -> Result<String, ShellError> {
-        log::debug!("shell command `{command}`");
+        cu::debug!("shell command `{command}`");
         let result = Command::new(&self.exe)
             .current_dir(work_dir.to_string())
             .args(&self.args)
@@ -85,7 +85,7 @@ impl Shell {
             })?;
         if result.status.success() {
             let output = String::from_utf8_lossy(&result.stdout).to_string();
-            log::debug!("shell output `{output}`");
+            cu::debug!("shell output `{output}`");
             Ok(output)
         } else {
             let exit_code = match result.status.code() {

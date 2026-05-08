@@ -160,7 +160,7 @@ fn create_file<P>(p: &P) -> Result<(), PathError>
 where
     P: AsRef<Path>,
 {
-    log::debug!("creating file: {}", p.as_ref().display());
+    cu::debug!("creating file: {}", p.as_ref().display());
     fs::File::create(p)
         .change_context_lazy(|| PathError::from(p))
         .attach_printable("cannot create file")?;

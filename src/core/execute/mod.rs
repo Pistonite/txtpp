@@ -64,8 +64,8 @@ impl Txtpp {
     /// This is what [`txtpp`] calls internally. The difference is that this function
     /// returns the error instead of printing it.
     pub fn run(config: Config) -> Result<(), TxtppError> {
-        log::info!("creating txtpp");
-        log::debug!("using config: {:?}", config);
+        cu::info!("creating txtpp");
+        cu::debug!("using config: {:?}", config);
 
         let shell = Arc::new(Shell::new(&config.shell_cmd).map_err(|e| {
             e.change_context(TxtppError).attach_printable(format!(
@@ -156,7 +156,7 @@ impl Txtpp {
 
             match data {
                 TaskResult::ScanDir(result) => {
-                    log::info!("scanning directory done");
+                    cu::info!("scanning directory done");
                     let directory = result.map_err(|e| {
                         self.progress.add_done_quiet(1);
                         e.change_context(TxtppError)
@@ -177,7 +177,7 @@ impl Txtpp {
                     })?;
                     match preprocess_result {
                         PpResult::HasDeps(input, deps) => {
-                            log::info!("file {input} has dependencies: {deps:?}");
+                            cu::info!("file {input} has dependencies: {deps:?}");
                             if dep_mgr.add_dependency(&input, &deps) {
                                 // schedule the dependencies
                                 for dep in deps {
@@ -189,7 +189,7 @@ impl Txtpp {
                             }
                         }
                         PpResult::Ok(input) => {
-                            log::info!("file {input} done");
+                            cu::info!("file {input} done");
                             let file_target = input.trim_txtpp().map_err(|e| {
                                 e.change_context(TxtppError)
                                     .attach_printable("cannot trim txtpp extension")
@@ -243,7 +243,7 @@ impl Txtpp {
             .progress
             .print_status(verbs::SCANNING, &dir.to_string(), Color::Yellow, true);
         let send = self.send.clone();
-        log::info!("scanning directory: {dir}");
+        cu::info!("scanning directory: {dir}");
         self.threadpool.execute(move || {
             let result = scan_dir(&dir, recursive);
             send.send(TaskResult::ScanDir(result))
@@ -277,7 +277,7 @@ impl Txtpp {
         let shell = self.shell.clone();
         let mode = self.config.mode.clone();
         let trailing_newline = self.config.trailing_newline;
-        log::info!("processing file: {file}");
+        cu::info!("processing file: {file}");
         self.threadpool.execute(move || {
             let result = preprocess(&shell, &file, mode, is_first_pass, trailing_newline);
             send.send(TaskResult::Preprocess(result))
@@ -289,7 +289,7 @@ impl Txtpp {
 
 impl Drop for Txtpp {
     fn drop(&mut self) {
-        log::info!("cleaning up txtpp");
+        cu::info!("cleaning up txtpp");
         self.threadpool.join();
         // wait for all workers to finish sending their last results, which we will ignore
         loop {
@@ -310,7 +310,7 @@ impl Drop for Txtpp {
                 }
             }
         }
-        log::info!("txtpp destroyed");
+        cu::info!("txtpp destroyed");
         // the channel will be dropped
     }
 }

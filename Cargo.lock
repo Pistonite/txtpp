@@ -483,7 +483,6 @@ dependencies = [
  "derivative",
  "env_logger",
  "error-stack",
- "log",
  "murmur3",
  "pistonite-cu",
  "termcolor",

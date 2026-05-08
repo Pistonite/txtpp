@@ -87,7 +87,7 @@ impl<'a> Pp<'a> {
                         .execute_directive(d)
                         .map_err(|e| e.attach_printable(d_str))?
                     {
-                        log::debug!("directive output: {raw_output:?}");
+                        cu::debug!("directive output: {raw_output:?}");
                         if self.tag_state.try_store(&raw_output).is_err() {
                             Some(self.format_directive_output(
                                 &whitespaces,
@@ -201,7 +201,7 @@ impl<'a> Pp<'a> {
             },
         };
 
-        log::debug!("next directive: {:?}", next);
+        cu::debug!("next directive: {:?}", next);
         Ok(next)
     }
 
@@ -248,7 +248,7 @@ impl<'a> Pp<'a> {
                     .attach_printable_lazy(|| {
                         format!("could not read include file: `{include_file}`")
                     })?;
-                log::debug!("include file content: {output:?}");
+                cu::debug!("include file content: {output:?}");
                 Some(output)
             }
             DirectiveType::Temp => {
@@ -293,7 +293,7 @@ impl<'a> Pp<'a> {
             let include_path = self.context.work_dir.as_path().join(include_path);
             // See if we need to store the dependency and come back later
             if let Some(x) = include_path.get_txtpp_file() {
-                log::debug!("found dependency: {}", x.display());
+                cu::debug!("found dependency: {}", x.display());
                 let p_abs = self.context.work_dir.share_base(x).map_err(|e| {
                     e.change_context(self.context.make_error(PpErrorKind::Directive))
                         .attach_printable(format!(
